@@ -12,7 +12,7 @@ const emit = defineEmits(['logout']);
   <div class="homepage">
     <!-- Header/Navigation -->
     <header id="header">
-      <Topbar @logout="emit('logout')" />
+      <Topbar :is-authenticated="true" @logout="emit('logout')" />
     </header>
 
     <!-- Main Content -->
@@ -102,6 +102,7 @@ const emit = defineEmits(['logout']);
 .homepage {
   font-family: Arial, sans-serif;
   color: #333;
+  background-color: transparent;
 }
 
 .section-title {
@@ -128,7 +129,13 @@ const emit = defineEmits(['logout']);
 }
 
 .custom-card {
-  /* Add custom styles for cards if needed */
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 1px rgba(0, 0, 0, 0.05);
+}
+
+.custom-card:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .row {

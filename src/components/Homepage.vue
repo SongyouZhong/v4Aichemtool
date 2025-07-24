@@ -1,14 +1,18 @@
 <script setup lang="ts">
+import { ref } from 'vue';
 import Topbar from './Topbar.vue';
 import Card from 'primevue/card';
 import Button from 'primevue/button';
+
+// Define emit for logout event
+const emit = defineEmits(['logout']);
 </script>
 
 <template>
   <div class="homepage">
     <!-- Header/Navigation -->
     <header id="header">
-      <Topbar />
+      <Topbar @logout="emit('logout')" />
     </header>
 
     <!-- Main Content -->

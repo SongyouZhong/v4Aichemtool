@@ -1,38 +1,98 @@
 <template>
-  <div class="navbar placeholder">
-    <div class="nav-left">LOGO</div>
-    <div class="nav-center">
-      <Button label="Menu" link />
-      <Button label="Pricing" link />
-      <Button label="About" link />
-    </div>
-    <div class="nav-right">
-      <Dropdown placeholder="User" />
-      <Button label="Sign Up" />
-    </div>
-  </div>
+  <header>
+    <nav class="topbar">
+      <div class="topbar-start">
+        <a href="/" class="logo">Aichemtool</a>
+      </div>
+      
+      <div class="topbar-end">
+        <Button 
+          label="Menu" 
+          link 
+          class="topbar-link"
+        />
+        <Button 
+          label="Pricing" 
+          link 
+          class="topbar-link"
+        />
+        <Button 
+          label="About" 
+          link 
+          class="topbar-link"
+        />
+        <Dropdown placeholder="User" class="topbar-dropdown" />
+        <Button 
+          label="Sign Up" 
+          class="topbar-signup"
+        />
+        <Button 
+          label="Logout" 
+          icon="pi pi-sign-out"
+          @click="handleLogout"
+          text
+          size="small"
+          class="topbar-logout"
+        />
+      </div>
+    </nav>
+  </header>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 import Button from 'primevue/button';
 import Dropdown from 'primevue/dropdown';
+
+// Define emit for logout event
+const emit = defineEmits(['logout']);
+
+const handleLogout = () => {
+  emit('logout');
+};
 </script>
 
 <style scoped>
-.navbar {
+.topbar {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  align-items: center;
-  padding: 1rem;
+  padding: 1rem 2rem;
+  background-color: var(--p-primary-color);
+  color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
-.nav-center,
-.nav-right {
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  text-decoration: none;
+}
+
+.topbar-end {
   display: flex;
-  gap: 1rem;
   align-items: center;
 }
-.placeholder {
-  border: 1px solid #d0d0d0;
-  background: #f9f9f9;
+
+.topbar-link {
+  color: white;
+  margin-right: 1rem;
+}
+
+.topbar-link:hover {
+  color: #f0f0f0;
+}
+
+.topbar-dropdown {
+  margin-right: 1rem;
+}
+
+.topbar-signup {
+  margin-right: 1rem;
+}
+
+.topbar-logout {
+  color: white;
 }
 </style>

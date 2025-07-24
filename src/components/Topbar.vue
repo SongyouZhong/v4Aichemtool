@@ -1,3 +1,29 @@
+<script setup lang="ts">
+import { ref, defineProps } from 'vue';
+import Button from 'primevue/button';
+import Dropdown from 'primevue/dropdown';
+
+// Define props
+const props = defineProps({
+  isAuthenticated: {
+    type: Boolean,
+    default: false
+  }
+});
+
+// Define emit for logout event
+const emit = defineEmits(['logout']);
+
+const handleLogout = () => {
+  emit('logout');
+};
+
+const handleSignUp = () => {
+  // In a real app, you would navigate to a registration page
+  alert('Sign up functionality would be implemented here');
+};
+</script>
+
 <template>
   <header>
     <nav class="topbar">
@@ -23,10 +49,13 @@
         />
         <Dropdown placeholder="User" class="topbar-dropdown" />
         <Button 
+          v-if="!isAuthenticated"
           label="Sign Up" 
           class="topbar-signup"
+          @click="handleSignUp"
         />
         <Button 
+          v-else
           label="Logout" 
           icon="pi pi-sign-out"
           @click="handleLogout"
@@ -38,19 +67,6 @@
     </nav>
   </header>
 </template>
-
-<script setup lang="ts">
-import { ref } from 'vue';
-import Button from 'primevue/button';
-import Dropdown from 'primevue/dropdown';
-
-// Define emit for logout event
-const emit = defineEmits(['logout']);
-
-const handleLogout = () => {
-  emit('logout');
-};
-</script>
 
 <style scoped>
 .topbar {
@@ -81,7 +97,7 @@ const handleLogout = () => {
 }
 
 .topbar-link:hover {
-  color: #f0f0f0;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .topbar-dropdown {
@@ -89,7 +105,9 @@ const handleLogout = () => {
 }
 
 .topbar-signup {
-  margin-right: 1rem;
+  background-color: var(--p-button-text-primary-color);
+  border: 1px solid white;
+  color: white;
 }
 
 .topbar-logout {

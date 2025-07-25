@@ -1,45 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import Homepage from './components/Homepage.vue'
-import Login from './components/Login.vue'
+import { onMounted } from 'vue';
+import AppLayout from './components/layout/AppLayout.vue';
+import { useAuth } from './composables/useAuth';
 
-// Check if user is authenticated
-const isAuthenticated = ref(false);
-const checkingAuth = ref(true);
+const { checkAuth, isLoading } = useAuth();
 
 onMounted(() => {
-  // Check if user data exists in localStorage
-  const userData = localStorage.getItem('user');
-  if (userData) {
-    try {
-      JSON.parse(userData);
-      isAuthenticated.value = true;
-    } catch (e) {
-      // Invalid user data, remove it
-      localStorage.removeItem('user');
-    }
-  }
-  checkingAuth.value = false;
+  checkAuth();
 });
-
-const handleLoginSuccess = (userData: { username: string }) => {
-  // Update authentication state
-  isAuthenticated.value = true;
-};
-
-const handleLogout = () => {
-  localStorage.removeItem('user');
-  isAuthenticated.value = false;
-};
 </script>
 
 <template>
-  <div v-if="checkingAuth" class="loading-container">
-    <div class="loading-spinner">Loading...</div>
+  <div v-if="isLoading" class="loading-container">
+    <div class="loading-spinner">
+      <i class="pi pi-spin pi-spinner" style="font-size: 2rem"></i>
+      <p>Loading...</p>
+    </div>
   </div>
   <template v-else>
-    <Login v-if="!isAuthenticated" @login-success="handleLoginSuccess" />
-    <Homepage v-else @logout="handleLogout" />
+    <AppLayout />
   </template>
 </template>
 
@@ -49,10 +28,19 @@ const handleLogout = () => {
   justify-content: center;
   align-items: center;
   height: 100vh;
+  flex-direction: column;
 }
 
 .loading-spinner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loading-spinner p {
   font-size: 1.2rem;
   color: var(--p-primary-color);
+  margin: 0;
 }
 </style>

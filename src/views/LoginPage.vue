@@ -43,7 +43,7 @@
             label="Sign In" 
             icon="pi pi-sign-in"
             @click="handleLogin"
-            :loading="loading"
+            :loading="isLoading"
             class="w-full"
           />
         </div>
@@ -64,15 +64,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, defineEmits } from 'vue';
+import { ref, reactive } from 'vue';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
 import Button from 'primevue/button';
 import Checkbox from 'primevue/checkbox';
+import { useAuth } from '@/composables/useAuth';
 
-// 定义事件发射器
-const emit = defineEmits(['loginSuccess']);
+const { login, isLoading } = useAuth();
 
 // Form data
 const loginForm = reactive({
@@ -86,9 +86,6 @@ const errors = reactive({
   username: '',
   password: ''
 });
-
-// Loading state
-const loading = ref(false);
 
 // Validate form
 const validateForm = () => {
@@ -119,48 +116,15 @@ const handleLogin = async () => {
     return;
   }
   
-  loading.value = true;
-  
   try {
-    // This is where you would integrate with your backend API
-    // For now, we'll simulate an API call
-    await loginAPI(loginForm.username, loginForm.password);
-    
-    // On successful login, notify parent component
-    // Store auth state in localStorage if "remember me" is checked
-    if (loginForm.remember) {
-      localStorage.setItem('user', JSON.stringify({ username: loginForm.username }));
+    const success = await login(loginForm.username, loginForm.password);
+    if (!success) {
+      errors.password = 'Invalid credentials';
     }
-    
-    // Emit login success event
-    emit('loginSuccess', { username: loginForm.username });
   } catch (error) {
-    // Handle login error
     console.error('Login failed:', error);
-    // You would show an error message to the user here
-  } finally {
-    loading.value = false;
+    errors.password = 'Login failed. Please try again.';
   }
-};
-
-// Simulate API call - this is where you would integrate with your backend
-const loginAPI = (username: string, password: string): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    // Simulate network delay
-    setTimeout(() => {
-      // In a real app, you would make an HTTP request to your backend
-      // For demo purposes, we'll accept any non-empty username and password
-      if (username && password) {
-        // Store auth state in localStorage if "remember me" is checked
-        if (loginForm.remember) {
-          localStorage.setItem('user', JSON.stringify({ username }));
-        }
-        resolve();
-      } else {
-        reject(new Error('Invalid credentials'));
-      }
-    }, 1000);
-  });
 };
 
 // Forgot password handler

@@ -89,12 +89,23 @@ const smallMoleculeTools = ref<SmallMoleculeTool[]>([
     description: 'Molecular docking plays a pivotal role in drug discovery by predicting how small molecules (ligands) interact with target proteins.',
     buttonText: 'Explore now',
     type: 'interactive-design'
+  },
+  {
+    title: 'Data Input Platform',
+    category: 'Data Management/Input/Analysis',
+    description: 'Comprehensive data input and management platform for chemical and molecular data. Features customizable input forms and structured data tables for efficient data organization.',
+    buttonText: 'Access Platform',
+    type: 'data-input'
   }
 ]);
 
 const handleToolClick = (tool: SmallMoleculeTool) => {
   // 根据工具类型导航到相应页面
-  router.push({ name: 'SmallMolecule', query: { tool: tool.type } });
+  if (tool.type === 'data-input') {
+    router.push({ name: 'DataInput' });
+  } else {
+    router.push({ name: 'SmallMolecule', query: { tool: tool.type } });
+  }
 };
 
 const navigateToProtein = () => {
@@ -151,7 +162,7 @@ const navigateToProtein = () => {
 
 .card-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
   gap: 20px;
   width: 100%;
 }

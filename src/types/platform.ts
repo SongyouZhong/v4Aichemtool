@@ -7,7 +7,7 @@ export interface PlatformCard {
 }
 
 export interface SmallMoleculeTool extends PlatformCard {
-  type: 'database' | 'ligand-generation' | 'pocket-generation' | 'interactive-design';
+  type: 'database' | 'ligand-generation' | 'pocket-generation' | 'interactive-design' | 'data-input';
 }
 
 export interface ProteinTool extends PlatformCard {

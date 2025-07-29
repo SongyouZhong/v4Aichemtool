@@ -5,11 +5,50 @@
       
       <!-- 上半部分 -->
       <div class="top-section">
-        <!-- 左边空白块 -->
+        <!-- 左边Ketcher化学结构编辑器 -->
         <div class="left-block">
-          <div class="empty-block">
-            <p>Empty Block</p>
-            <span>This area is reserved for future content</span>
+          <div class="ketcher-container">
+            <h3>Chemical Structure Editor</h3>
+            <iframe 
+              ref="ketcherFrame"
+              class="ketcher-frame" 
+              id="idKetcher" 
+              src="/standalone/index.html" 
+              width="100%" 
+              height="450"
+              @load="onKetcherLoad"
+            />
+            <div class="ketcher-controls">
+              <Button 
+                label="Get SMILES" 
+                size="small"
+                @click="getSmiles"
+                class="control-btn"
+              />
+              <Button 
+                label="Set Sample" 
+                size="small" 
+                severity="info"
+                @click="setSampleMolecule"
+                class="control-btn"
+              />
+              <Button 
+                label="Clear" 
+                size="small" 
+                severity="secondary"
+                @click="clearMolecule"
+                class="control-btn"
+              />
+            </div>
+            <div class="smiles-display" v-if="currentSmiles">
+              <label>Current SMILES:</label>
+              <InputText 
+                v-model="currentSmiles" 
+                readonly 
+                size="small"
+                class="smiles-input"
+              />
+            </div>
           </div>
         </div>
         
@@ -113,6 +152,11 @@ const inputs = ref({
   parameter5: ''
 });
 
+// Ketcher相关
+const ketcherFrame = ref<HTMLIFrameElement | null>(null);
+const currentSmiles = ref('');
+const ketcherReady = ref(false);
+
 // 表格列定义
 const tableColumns = ref([
   { field: 'col1', header: 'Column 1' },
@@ -126,6 +170,144 @@ const tableColumns = ref([
 
 // 表格数据 (10行7列)
 const tableData = ref<any[]>([]);
+
+// Ketcher相关方法
+const getKetcherInstance = () => {
+  if (!ketcherFrame.value) return null;
+  
+  let ketcher = null;
+  try {
+    if ('contentDocument' in ketcherFrame.value) {
+      ketcher = (ketcherFrame.value.contentWindow as any)?.ketcher;
+    } else {
+      ketcher = (window.frames as any)['idKetcher']?.ketcher;
+    }
+  } catch (error) {
+    console.error('Error accessing Ketcher instance:', error);
+  }
+  
+  return ketcher;
+};
+
+// 使用PostMessage API与Ketcher通信
+const sendKetcherMessage = (action: string, data?: any): Promise<any> => {
+  return new Promise((resolve, reject) => {
+    if (!ketcherFrame.value?.contentWindow) {
+      reject(new Error('Ketcher frame not available'));
+      return;
+    }
+    
+    const messageId = Date.now() + Math.random();
+    
+    const handleResponse = (event: MessageEvent) => {
+      if (event.data.action === action + 'Response') {
+        window.removeEventListener('message', handleResponse);
+        if (event.data.success) {
+          resolve(event.data.data);
+        } else {
+          reject(new Error(event.data.error));
+        }
+      }
+    };
+    
+    window.addEventListener('message', handleResponse);
+    
+    // 设置超时
+    setTimeout(() => {
+      window.removeEventListener('message', handleResponse);
+      reject(new Error('Ketcher operation timeout'));
+    }, 5000);
+    
+    ketcherFrame.value.contentWindow.postMessage({ action, data, messageId }, '*');
+  });
+};
+
+const onKetcherLoad = () => {
+  console.log('Ketcher iframe loaded');
+  // 等待一段时间确保Ketcher完全初始化
+  setTimeout(() => {
+    ketcherReady.value = true;
+    console.log('Ketcher ready for interaction');
+  }, 3000);
+};
+
+const getSmiles = async () => {
+  if (!ketcherReady.value) {
+    console.warn('Ketcher not ready');
+    return;
+  }
+  
+  try {
+    const smiles = await sendKetcherMessage('getSmiles');
+    currentSmiles.value = smiles || '';
+    console.log('Current SMILES:', smiles);
+  } catch (error) {
+    console.error('Error getting SMILES:', error);
+    // 回退到直接访问方法
+    try {
+      const ketcher = getKetcherInstance();
+      if (ketcher) {
+        const smiles = await ketcher.getSmiles();
+        currentSmiles.value = smiles || '';
+      }
+    } catch (fallbackError) {
+      console.error('Fallback method also failed:', fallbackError);
+    }
+  }
+};
+
+const setSampleMolecule = async () => {
+  if (!ketcherReady.value) {
+    console.warn('Ketcher not ready');
+    return;
+  }
+  
+  try {
+    // 设置一个示例分子 (咖啡因的SMILES)
+    const sampleSmiles = 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C';
+    await sendKetcherMessage('setMolecule', sampleSmiles);
+    currentSmiles.value = sampleSmiles;
+    console.log('Sample molecule set');
+  } catch (error) {
+    console.error('Error setting sample molecule:', error);
+    // 回退到直接访问方法
+    try {
+      const ketcher = getKetcherInstance();
+      if (ketcher) {
+        const sampleSmiles = 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C';
+        await ketcher.setMolecule(sampleSmiles);
+        currentSmiles.value = sampleSmiles;
+      }
+    } catch (fallbackError) {
+      console.error('Fallback method also failed:', fallbackError);
+    }
+  }
+};
+
+const clearMolecule = async () => {
+  if (!ketcherReady.value) {
+    console.warn('Ketcher not ready');
+    return;
+  }
+  
+  try {
+    await sendKetcherMessage('clear');
+    currentSmiles.value = '';
+    console.log('Molecule cleared');
+  } catch (error) {
+    console.error('Error clearing molecule:', error);
+    // 回退到直接访问方法
+    try {
+      const ketcher = getKetcherInstance();
+      if (ketcher) {
+        await ketcher.setMolecule('');
+        currentSmiles.value = '';
+      }
+    } catch (fallbackError) {
+      console.error('Fallback method also failed:', fallbackError);
+    }
+  }
+};
 
 // 初始化表格数据
 const initializeTable = () => {
@@ -147,13 +329,20 @@ const clearAllData = () => {
   
   // 清空表格
   initializeTable();
+  
+  // 清空Ketcher分子结构
+  clearMolecule();
 };
 
 // 保存数据
-const saveData = () => {
+const saveData = async () => {
+  // 先获取最新的SMILES数据
+  await getSmiles();
+  
   const allData = {
     inputs: inputs.value,
-    tableData: tableData.value
+    tableData: tableData.value,
+    moleculeSmiles: currentSmiles.value
   };
   
   console.log('Saving data:', allData);
@@ -219,31 +408,63 @@ onMounted(() => {
 
 .left-block {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
 }
 
-.empty-block {
+.ketcher-container {
   width: 100%;
-  height: 300px;
-  border: 2px dashed #ccc;
-  border-radius: 8px;
   display: flex;
   flex-direction: column;
-  align-items: center;
+}
+
+.ketcher-container h3 {
+  margin: 0 0 1rem 0;
+  color: var(--p-primary-color);
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.ketcher-frame {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  background-color: #fff;
+  min-height: 450px;
+}
+
+.ketcher-controls {
+  display: flex;
+  gap: 0.5rem;
   justify-content: center;
-  background-color: #f9f9f9;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
-.empty-block p {
-  font-size: 1.2rem;
-  color: #666;
-  margin-bottom: 0.5rem;
+.control-btn {
+  min-width: 80px;
+  font-size: 0.875rem;
+  height: 2rem;
 }
 
-.empty-block span {
+.smiles-display {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.smiles-display label {
+  font-weight: 500;
+  color: #333;
   font-size: 0.9rem;
-  color: #999;
+}
+
+.smiles-input {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.8rem;
+  background-color: #f8f9fa;
+  border: 1px solid #ddd;
+  word-break: break-all;
 }
 
 .right-inputs {

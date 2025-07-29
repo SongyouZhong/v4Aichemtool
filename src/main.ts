@@ -6,6 +6,7 @@ import 'primeicons/primeicons.css';                // 图标样式
 
 import App from './App.vue';
 import router from './router';
+import { useAuthStore } from './stores';
 
 const app = createApp(App);
 const pinia = createPinia();
@@ -24,4 +25,20 @@ app.use(PrimeVue, {
   }
 });
 
-app.mount('#app');
+// 在应用挂载前进行认证检查
+const initializeApp = async () => {
+  const authStore = useAuthStore();
+  
+  try {
+    // 进行认证检查（包含自动登录）
+    await authStore.checkAuth();
+    console.log('App initialized with authentication status:', authStore.isAuthenticated);
+  } catch (error) {
+    console.error('Failed to initialize authentication:', error);
+  } finally {
+    // 无论认证是否成功，都挂载应用
+    app.mount('#app');
+  }
+};
+
+initializeApp();

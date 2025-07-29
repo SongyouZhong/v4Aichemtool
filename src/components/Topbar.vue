@@ -10,7 +10,15 @@ const { user, isAuthenticated, logout } = useAuth();
 
 const handleLogout = () => {
   logout();
+  // 注销后自动重新进行自动登录，保持访客状态
+  setTimeout(() => {
+    router.push({ name: 'Home' });
+  }, 100);
 };
+
+const isGuestUser = computed(() => {
+  return user.value?.username === 'Guest User';
+});
 
 const handleSignUp = () => {
   // In a real app, you would navigate to a registration page
@@ -60,8 +68,19 @@ const navigateToProtein = () => {
           class="topbar-link"
         />
         <div v-if="isAuthenticated && user" class="user-info">
-          <span class="username">{{ user.username }}</span>
+          <span class="username" :class="{ 'guest-user': isGuestUser }">
+            {{ isGuestUser ? 'Guest Mode' : user.username }}
+          </span>
         </div>
+        <Button 
+          v-if="isGuestUser"
+          label="Login" 
+          icon="pi pi-user"
+          class="topbar-login"
+          @click="navigateToLogin"
+          size="small"
+          outlined
+        />
         <Button 
           v-if="!isAuthenticated"
           label="Sign Up" 
@@ -75,7 +94,7 @@ const navigateToProtein = () => {
           @click="navigateToLogin"
         />
         <Button 
-          v-else
+          v-if="isAuthenticated && !isGuestUser"
           label="Logout" 
           icon="pi pi-sign-out"
           @click="handleLogout"
@@ -129,6 +148,12 @@ const navigateToProtein = () => {
 
 .username {
   font-weight: 500;
+}
+
+.username.guest-user {
+  opacity: 0.8;
+  font-style: italic;
+  font-size: 0.9rem;
 }
 
 .topbar-signup {

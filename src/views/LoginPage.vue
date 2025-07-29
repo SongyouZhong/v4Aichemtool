@@ -44,7 +44,21 @@
             icon="pi pi-sign-in"
             @click="handleLogin"
             :loading="isLoading"
-            class="w-full"
+            class="w-full login-btn"
+          />
+          
+          <div class="divider">
+            <span>or</span>
+          </div>
+          
+          <Button 
+            label="Continue as Guest" 
+            icon="pi pi-user"
+            @click="continueAsGuest"
+            :loading="isLoading"
+            severity="secondary"
+            outlined
+            class="w-full guest-btn"
           />
         </div>
       </template>
@@ -65,6 +79,7 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
 import Card from 'primevue/card';
 import InputText from 'primevue/inputtext';
 import Password from 'primevue/password';
@@ -73,6 +88,7 @@ import Checkbox from 'primevue/checkbox';
 import { useAuth } from '@/composables/useAuth';
 
 const { login, isLoading } = useAuth();
+const router = useRouter();
 
 // Form data
 const loginForm = reactive({
@@ -137,6 +153,12 @@ const forgotPassword = () => {
 const signUp = () => {
   // In a real app, you would navigate to a registration page
   alert('Sign up functionality would be implemented here');
+};
+
+// Continue as guest handler
+const continueAsGuest = () => {
+  // 直接导航到首页，自动登录逻辑会在路由守卫中处理
+  router.push({ name: 'Home' });
 };
 </script>
 
@@ -223,5 +245,36 @@ const signUp = () => {
 
 .w-full {
   width: 100%;
+}
+
+.login-btn {
+  margin-bottom: 1rem;
+}
+
+.divider {
+  position: relative;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--p-content-border-color);
+}
+
+.divider span {
+  background-color: var(--p-surface-card);
+  padding: 0 1rem;
+  color: var(--p-text-muted-color);
+  font-size: 0.875rem;
+}
+
+.guest-btn {
+  margin-bottom: 0.5rem;
 }
 </style>

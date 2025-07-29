@@ -47,11 +47,24 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
+  // 如果需要认证但用户未认证，先尝试自动认证
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
-    next({ name: 'Login' })
+    try {
+      await authStore.checkAuth()
+      // 认证成功后继续导航
+      if (authStore.isAuthenticated) {
+        next()
+      } else {
+        // 自动认证失败，跳转到登录页面
+        next({ name: 'Login' })
+      }
+    } catch (error) {
+      console.error('Authentication check failed:', error)
+      next({ name: 'Login' })
+    }
   } else if (to.name === 'Login' && authStore.isAuthenticated) {
     next({ name: 'Home' })
   } else {

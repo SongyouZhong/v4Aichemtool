@@ -67,12 +67,37 @@ export const useAuthStore = defineStore('auth', {
         if (userData && isAuthenticated === 'true') {
           this.user = JSON.parse(userData)
           this.isAuthenticated = true
+        } else {
+          // 自动登录访客用户，无需输入凭据
+          await this.autoLogin()
         }
       } catch (error) {
         console.error('Auth check failed:', error)
-        this.logout()
+        // 即使检查失败，也进行自动登录
+        await this.autoLogin()
       } finally {
         this.isLoading = false
+      }
+    },
+
+    async autoLogin() {
+      try {
+        const guestUser: User = {
+          username: 'Guest User',
+          email: 'guest@aichemtool.com',
+          id: 'guest-' + Date.now()
+        }
+        
+        this.user = guestUser
+        this.isAuthenticated = true
+        
+        // 保存到localStorage
+        localStorage.setItem('user', JSON.stringify(guestUser))
+        localStorage.setItem('isAuthenticated', 'true')
+        
+        console.log('Auto-login successful for guest user')
+      } catch (error) {
+        console.error('Auto-login failed:', error)
       }
     }
   }

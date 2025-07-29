@@ -80,20 +80,33 @@ public/
 
 ### 部署方式
 - **位置**: `/public/standalone/index.html`
-- **版本**: Ketcher v2.6.2
-- **加载方式**: 通过CDN加载Ketcher库
+- **版本**: 自定义化学结构编辑器 (Ketcher CDN不可用时的替代方案)
+- **加载方式**: 自带的JavaScript画布绘制功能
 
 ### 集成方式
-- **iframe嵌入**: 在DataInputPage中通过iframe嵌入Ketcher
+- **iframe嵌入**: 在DataInputPage中通过iframe嵌入编辑器
 - **通信机制**: 支持两种通信方式
   1. PostMessage API (推荐，更安全)
   2. 直接访问iframe内容窗口 (回退方案)
 
 ### 主要功能
-- **绘制分子结构**: 完整的化学结构绘制工具
-- **SMILES支持**: 导入/导出SMILES格式
+- **绘制分子结构**: 基础的化学结构绘制工具
+  - 原子工具：点击添加原子 (默认碳原子)
+  - 键工具：连接原子 (功能开发中)
+  - 擦除工具：删除原子
+- **SMILES支持**: 基础的SMILES格式导入/导出
 - **实时交互**: 与Vue组件的数据双向绑定
 - **示例分子**: 内置咖啡因分子作为示例
+
+### 编辑器功能
+- **工具栏**:
+  - Atom: 添加原子
+  - Bond: 连接原子 (开发中)
+  - Erase: 删除原子
+  - Clear: 清空画布
+  - Sample: 加载咖啡因示例分子
+- **SMILES显示**: 实时显示当前分子的SMILES表示
+- **可视化**: 彩色原子显示 (C=灰色, N=蓝色, O=红色等)
 
 ### API方法
 ```javascript
@@ -111,6 +124,15 @@ await sendKetcherMessage('getSmiles')
 await sendKetcherMessage('setMolecule', smilesString)
 await sendKetcherMessage('clear')
 ```
+
+### 技术说明
+由于Ketcher官方CDN链接不可用，我们实现了一个简化的化学结构编辑器作为替代方案。这个编辑器提供了基本的分子绘制功能，包括：
+- Canvas-based绘制系统
+- 基础原子操作
+- 简化的SMILES生成
+- 与主应用的无缝集成
+
+如果将来Ketcher CDN恢复可用，可以轻松替换回完整的Ketcher编辑器。
 
 ## 响应式设计
 - 移动端适配: 在768px以下自动切换为单列布局

@@ -16,13 +16,13 @@
               src="/standalone/index.html" 
               width="100%" 
               height="450"
-              @load="onKetcherLoad"
+              @load="handleKetcherLoad"
             />
             <div class="ketcher-controls">
               <Button 
                 label="Get SMILES" 
                 size="small"
-                @click="getSmiles"
+                @click="getSmilesAndSync"
                 class="control-btn"
                 title="Get SMILES from editor to input field"
               />
@@ -30,7 +30,7 @@
                 label="Set SMILES" 
                 size="small" 
                 severity="info"
-                @click="setSampleMolecule"
+                @click="setSmilesFromInput"
                 class="control-btn"
                 title="Set SMILES from input field to editor"
               />
@@ -46,7 +46,9 @@
               <small class="help-text">
                 <strong>Usage:</strong> 
                 • Draw molecule, click "Get SMILES" to copy to input field<br>
-                • Enter SMILES in input field, click "Set SMILES" to display in editor
+                • Enter SMILES in input field, click "Set SMILES" to display in editor<br>
+                <span v-if="!ketcherReady" style="color: orange;">⚠️ Ketcher is loading...</span>
+                <span v-else style="color: green;">✅ Ketcher is ready</span>
               </small>
             </div>
           </div>
@@ -76,12 +78,12 @@
           <!-- 第2行：2个输入框 -->
           <div class="input-row row-2">
             <div class="input-item">
-              <label for="input2">Parameter A:</label>
-              <InputText v-model="inputs.parameterA" id="input2" placeholder="Enter parameter A" />
+              <label for="input2">Compound Name:</label>
+              <InputText v-model="inputs.compoundName" id="input2" placeholder="Enter compound name" />
             </div>
             <div class="input-item">
-              <label for="input3">Parameter B:</label>
-              <InputText v-model="inputs.parameterB" id="input3" placeholder="Enter parameter B" />
+              <label for="input3">Compound Batch:</label>
+              <InputText v-model="inputs.compoundBatch" id="input3" placeholder="Enter compound batch" />
             </div>
           </div>
           
@@ -89,12 +91,12 @@
           <div class="input-row row-3">
             <div class="input-item">
               <label for="input4">Compound SMILES:</label>
-              <InputText v-model="inputs.parameterC" id="input4" placeholder="Enter SMILES or use 'Get SMILES' button" />
+              <InputText v-model="inputs.compoundSmiles" id="input4" placeholder="Enter SMILES or use 'Get SMILES' button" />
               <small class="field-help">Type SMILES (e.g., CCO for ethanol) then click "Set SMILES" button above</small>
             </div>
             <div class="input-item">
-              <label for="input5">Parameter D:</label>
-              <InputText v-model="inputs.parameterD" id="input5" placeholder="Enter parameter D" />
+              <label for="input5">Compound Note:</label>
+              <InputText v-model="inputs.compoundNote" id="input5" placeholder="Enter compound note" />
             </div>
           </div>
           
@@ -343,7 +345,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import InputText from 'primevue/inputtext';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
@@ -351,90 +353,68 @@ import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Dropdown from 'primevue/dropdown';
 
-// 新的输入框数据结构
-const inputs = ref({
-  mainParameter: null as string | null, // 明确指定类型
-  parameterA: '',
-  parameterB: '',
-  parameterC: '', // 这个将改为compound smile
-  parameterD: ''
-});
+// 导入自定义组合式函数
+import { useTableData } from '@/composables/useTableData';
+import { useProjectManagement, useFormData } from '@/composables/useProjectManagement';
+import { useKetcher } from '@/composables/useKetcher';
 
-// 主参数下拉框选项
-const mainParameterOptions = ref([
-  { label: 'Project Alpha', value: 'project_alpha' },
-  { label: 'Project Beta', value: 'project_beta' },
-  { label: 'Project Gamma', value: 'project_gamma' },
-  { label: 'Project Delta', value: 'project_delta' }
-]);
+// 使用组合式函数
+const {
+  tableData,
+  rows,
+  loading: tableLoading,
+  showImageDialog,
+  selectedImage,
+  scrollable,
+  scrollHeight,
+  loadTableData,
+  loadSampleData: loadSampleTableData,
+  addNewRow,
+  editRow,
+  deleteRow,
+  clearTable,
+  showImageModal,
+  closeImageDialog,
+  downloadImage,
+  handleImageError
+} = useTableData();
 
-// 项目管理对话框相关
-const showProjectDialog = ref(false);
-const projectTableData = ref([
-  [
-    { label: 'Project Name', value: 'Chemical Analysis Platform' },
-    { label: 'Status', value: 'Active' }
-  ],
-  [
-    { label: 'Start Date', value: '2024-01-15' },
-    { label: 'End Date', value: '2024-12-31' }
-  ]
-]);
+const {
+  mainParameterOptions,
+  projectTableData,
+  showProjectDialog,
+  loading: projectLoading,
+  loadMainParameterOptions,
+  loadProjectTableData,
+  handleProjectManagement,
+  closeProjectDialog,
+  editProject
+} = useProjectManagement();
 
-// Ketcher相关
-const ketcherFrame = ref<HTMLIFrameElement | null>(null);
-const currentSmiles = ref('');
-const ketcherReady = ref(false);
+const {
+  inputs,
+  errors: formErrors,
+  loading: formLoading,
+  resetForm,
+  loadSampleData: loadSampleFormData,
+  validateForm,
+  saveFormData
+} = useFormData();
 
-// 表格分页相关
-const rows = ref(15);
-const scrollable = computed(() => rows.value > 15);
-const scrollHeight = computed(() => rows.value > 15 ? '400px' : undefined);
+const {
+  ketcherFrame,
+  currentSmiles,
+  ketcherReady,
+  loading: ketcherLoading,
+  onKetcherLoad,
+  getSmiles,
+  setMolecule,
+  clearMolecule,
+  setSampleMolecule,
+  setKetcherFrame
+} = useKetcher();
 
-// 表格数据类型定义
-interface TableRow {
-  id: number;
-  name: string;
-  batch: string;
-  smiles: string;
-  smilesImage: string;
-  description: string;
-  attachments: string[];
-}
-
-// 表格数据
-const tableData = ref<TableRow[]>([]);
-
-// 图片放大对话框相关
-const showImageDialog = ref(false);
-const selectedImage = ref({
-  src: '',
-  name: '',
-  smiles: '',
-  description: ''
-});
-
-// 输入按钮事件处理
-const handleSearch = () => {
-  console.log('Search clicked with:', inputs.value.mainParameter);
-  // 这里添加搜索逻辑
-};
-
-// 项目管理相关方法
-const handleProjectManagement = () => {
-  showProjectDialog.value = true;
-};
-
-const closeProjectDialog = () => {
-  showProjectDialog.value = false;
-};
-
-const editProject = () => {
-  console.log('Edit project clicked');
-  // 这里可以添加编辑项目的逻辑
-  alert('编辑项目功能待实现');
-};
-
+// 业务逻辑方法
 const handleProcess = () => {
   console.log('Process clicked');
   // 这里添加处理逻辑
@@ -442,7 +422,12 @@ const handleProcess = () => {
 
 const handleValidate = () => {
   console.log('Validate clicked');
-  // 这里添加验证逻辑
+  const isValid = validateForm();
+  if (isValid) {
+    alert('Validation passed!');
+  } else {
+    alert('Validation failed: ' + formErrors.value.join(', '));
+  }
 };
 
 const handleCalculate = () => {
@@ -451,13 +436,7 @@ const handleCalculate = () => {
 };
 
 const handleReset = () => {
-  inputs.value = {
-    mainParameter: null,
-    parameterA: '',
-    parameterB: '',
-    parameterC: '',
-    parameterD: ''
-  };
+  resetForm();
   console.log('Parameters reset');
 };
 
@@ -476,9 +455,9 @@ const handlePreview = () => {
   // 这里添加预览逻辑
 };
 
-const handleSaveAll = () => {
+const handleSaveAll = async () => {
   console.log('Save All clicked');
-  saveData();
+  await saveData();
 };
 
 const handleClearAll = () => {
@@ -488,454 +467,83 @@ const handleClearAll = () => {
   console.log('All data cleared');
 };
 
-// Ketcher相关方法
-const getKetcherInstance = () => {
-  if (!ketcherFrame.value) return null;
-  
-  let ketcher = null;
-  try {
-    if ('contentDocument' in ketcherFrame.value) {
-      ketcher = (ketcherFrame.value.contentWindow as any)?.ketcher;
-    } else {
-      ketcher = (window.frames as any)['idKetcher']?.ketcher;
-    }
-  } catch (error) {
-    console.error('Error accessing Ketcher instance:', error);
+// SMILES 同步方法
+const getSmilesAndSync = async () => {
+  const smiles = await getSmiles();
+  if (smiles) {
+    inputs.value.compoundSmiles = smiles;
+    console.log('SMILES synced to input field:', smiles);
   }
-  
-  return ketcher;
 };
 
-// 使用PostMessage API与Ketcher通信
-const sendKetcherMessage = (action: string, data?: any): Promise<any> => {
-  return new Promise((resolve, reject) => {
-    if (!ketcherFrame.value?.contentWindow) {
-      reject(new Error('Ketcher frame not available'));
-      return;
+const setSmilesFromInput = async () => {
+  console.log('setSmilesFromInput called');
+  console.log('Ketcher ready:', ketcherReady.value);
+  console.log('Ketcher frame ref:', !!ketcherFrame.value);
+  
+  const smiles = inputs.value.compoundSmiles.trim();
+  console.log('SMILES from input:', smiles);
+  
+  if (smiles) {
+    const success = await setMolecule(smiles);
+    if (success) {
+      console.log('SMILES set from input field:', smiles);
+    } else {
+      alert('Failed to set SMILES. Please check the console for details.');
     }
-    
-    const messageId = Date.now() + Math.random();
-    
-    const handleResponse = (event: MessageEvent) => {
-      if (event.data.action === action + 'Response') {
-        window.removeEventListener('message', handleResponse);
-        if (event.data.success) {
-          resolve(event.data.data);
-        } else {
-          reject(new Error(event.data.error));
-        }
-      }
-    };
-    
-    window.addEventListener('message', handleResponse);
-    
-    // 设置超时
-    setTimeout(() => {
-      window.removeEventListener('message', handleResponse);
-      reject(new Error('Ketcher operation timeout'));
-    }, 5000);
-    
-    ketcherFrame.value.contentWindow.postMessage({ action, data, messageId }, '*');
+  } else {
+    // 如果输入框为空，设置示例分子
+    console.log('Input is empty, setting sample molecule');
+    const success = await setSampleMolecule();
+    if (success) {
+      inputs.value.compoundSmiles = currentSmiles.value;
+    }
+  }
+};
+
+// Ketcher加载处理
+const handleKetcherLoad = () => {
+  console.log('Ketcher iframe load event triggered');
+  
+  // 使用nextTick确保Vue的ref已经更新
+  nextTick(() => {
+    if (ketcherFrame.value) {
+      setKetcherFrame(ketcherFrame.value);
+      console.log('Ketcher frame reference set:', ketcherFrame.value);
+    } else {
+      console.warn('ketcherFrame.value is null in handleKetcherLoad');
+    }
+    // 调用原始的onKetcherLoad方法
+    onKetcherLoad();
   });
-};
-
-const onKetcherLoad = () => {
-  console.log('Ketcher iframe loaded');
-  // 等待一段时间确保Ketcher完全初始化
-  setTimeout(() => {
-    ketcherReady.value = true;
-    console.log('Ketcher ready for interaction');
-    
-    // 测试Ketcher实例是否可用
-    const ketcher = getKetcherInstance();
-    if (ketcher) {
-      console.log('Ketcher instance found:', typeof ketcher);
-      console.log('Available methods:', Object.keys(ketcher).filter(key => typeof ketcher[key] === 'function'));
-    } else {
-      console.warn('Ketcher instance not found');
-    }
-  }, 3000);
-};
-
-const getSmiles = async () => {
-  if (!ketcherReady.value) {
-    console.warn('Ketcher not ready');
-    return;
-  }
-  
-  console.log('Attempting to get SMILES from editor...');
-  
-  // 首先尝试直接访问Ketcher实例
-  try {
-    const ketcher = getKetcherInstance();
-    if (ketcher && ketcher.getSmiles) {
-      const smiles = await ketcher.getSmiles();
-      currentSmiles.value = smiles || '';
-      inputs.value.parameterC = smiles || '';
-      console.log('SMILES retrieved successfully with direct API:', smiles);
-      console.log('Updated Parameter C with SMILES:', smiles);
-      return;
-    }
-  } catch (error) {
-    console.warn('Direct Ketcher API failed, trying PostMessage:', error);
-  }
-  
-  // 如果直接API失败，尝试PostMessage
-  try {
-    const smiles = await sendKetcherMessage('getSmiles');
-    currentSmiles.value = smiles || '';
-    inputs.value.parameterC = smiles || '';
-    console.log('SMILES retrieved successfully with PostMessage:', smiles);
-    console.log('Updated Parameter C with SMILES:', smiles);
-  } catch (error) {
-    console.error('Both direct API and PostMessage failed:', error);
-    alert('Failed to get SMILES. Please ensure Ketcher is loaded properly.');
-  }
-};
-
-const setSampleMolecule = async () => {
-  if (!ketcherReady.value) {
-    console.warn('Ketcher not ready');
-    return;
-  }
-  
-  // 如果Parameter C有SMILES，使用它；否则使用默认的咖啡因SMILES
-  const smilesFromInput = inputs.value.parameterC.trim();
-  const smilesToSet = smilesFromInput || 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C';
-  
-  console.log('Attempting to set SMILES:', smilesToSet);
-  console.log('SMILES source:', smilesFromInput ? 'from input field' : 'default caffeine');
-  
-  // 首先尝试直接访问Ketcher实例
-  try {
-    const ketcher = getKetcherInstance();
-    if (ketcher && ketcher.setMolecule) {
-      await ketcher.setMolecule(smilesToSet);
-      currentSmiles.value = smilesToSet;
-      // 如果使用了默认值，更新到输入框
-      if (!smilesFromInput) {
-        inputs.value.parameterC = smilesToSet;
-      }
-      console.log('Molecule set successfully with direct API. SMILES:', smilesToSet);
-      return;
-    }
-  } catch (error) {
-    console.warn('Direct Ketcher API failed, trying PostMessage:', error);
-  }
-  
-  // 如果直接API失败，尝试PostMessage
-  try {
-    await sendKetcherMessage('setMolecule', smilesToSet);
-    currentSmiles.value = smilesToSet;
-    // 如果使用了默认值，更新到输入框
-    if (!smilesFromInput) {
-      inputs.value.parameterC = smilesToSet;
-    }
-    console.log('Molecule set successfully with PostMessage. SMILES:', smilesToSet);
-  } catch (error) {
-    console.error('Both direct API and PostMessage failed:', error);
-    alert(`Failed to set molecule. Please ensure Ketcher is loaded properly. SMILES: ${smilesToSet}`);
-  }
-};
-
-const clearMolecule = async () => {
-  if (!ketcherReady.value) {
-    console.warn('Ketcher not ready');
-    return;
-  }
-  
-  try {
-    await sendKetcherMessage('clear');
-    currentSmiles.value = '';
-    console.log('Molecule cleared');
-  } catch (error) {
-    console.error('Error clearing molecule:', error);
-    // 回退到直接访问方法
-    try {
-      const ketcher = getKetcherInstance();
-      if (ketcher) {
-        await ketcher.setMolecule('');
-        currentSmiles.value = '';
-      }
-    } catch (fallbackError) {
-      console.error('Fallback method also failed:', fallbackError);
-    }
-  }
-};
-
-// 表格相关方法
-const addNewRow = () => {
-  const newId = Math.max(...tableData.value.map(row => row.id), 0) + 1;
-  const newRow: TableRow = {
-    id: newId,
-    name: '',
-    batch: '',
-    smiles: '',
-    smilesImage: '',
-    description: '',
-    attachments: []
-  };
-  tableData.value.push(newRow);
-  console.log('New row added');
-};
-
-const editRow = (row: TableRow) => {
-  console.log('Editing row:', row);
-  // 这里可以添加编辑逻辑，比如打开编辑对话框
-  // 暂时用prompt做简单演示
-  const newName = prompt('Edit name:', row.name);
-  if (newName !== null) {
-    row.name = newName;
-  }
-};
-
-const deleteRow = (row: TableRow) => {
-  if (confirm(`Are you sure you want to delete row "${row.name}"?`)) {
-    const index = tableData.value.findIndex(r => r.id === row.id);
-    if (index !== -1) {
-      tableData.value.splice(index, 1);
-      console.log('Row deleted:', row);
-    }
-  }
-};
-
-const clearTable = () => {
-  tableData.value = [];
-  console.log('Table cleared');
-};
-
-const loadSampleTableData = () => {
-  tableData.value = [
-    {
-      id: 1,
-      name: 'Caffeine',
-      batch: 'CHM-2024-001',
-      smiles: 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CN1C%3DNC2%3DC1C(%3DO)N(C(%3DO)N2C)C/PNG',
-      description: 'Central nervous system stimulant, commonly found in coffee and tea',
-      attachments: ['caffeine_analysis.pdf', 'nmr_data.xlsx', 'purity_report.doc']
-    },
-    {
-      id: 2,
-      name: 'Aspirin',
-      batch: 'PHM-2024-002',
-      smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CC(%3DO)OC1%3DCC%3DCC%3DC1C(%3DO)O/PNG',
-      description: 'Nonsteroidal anti-inflammatory drug (NSAID) used for pain relief',
-      attachments: ['aspirin_synthesis.pdf', 'quality_control.xlsx']
-    },
-    {
-      id: 3,
-      name: 'Glucose',
-      batch: 'BIO-2024-003',
-      smiles: 'C([C@@H]1[C@H]([C@@H]([C@H]([C@H](O1)O)O)O)O)O',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/C(%5BC%40%40H%5D1%5BC%40H%5D(%5BC%40%40H%5D(%5BC%40H%5D(%5BC%40H%5D(O1)O)O)O)O)O/PNG',
-      description: 'Simple sugar and primary energy source for cellular metabolism',
-      attachments: ['glucose_purity.pdf']
-    },
-    {
-      id: 4,
-      name: 'Ibuprofen',
-      batch: 'PHM-2024-004',
-      smiles: 'CC(C)CC1=CC=C(C=C1)C(C)C(=O)O',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CC(C)CC1%3DCC%3DC(C%3DC1)C(C)C(%3DO)O/PNG',
-      description: 'Nonsteroidal anti-inflammatory drug for pain and fever reduction',
-      attachments: ['ibuprofen_specs.pdf', 'dissolution_test.xlsx', 'stability_study.doc']
-    },
-    {
-      id: 5,
-      name: 'Benzene',
-      batch: 'ORG-2024-005',
-      smiles: 'C1=CC=CC=C1',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/C1%3DCC%3DCC%3DC1/PNG',
-      description: 'Aromatic hydrocarbon, important industrial solvent and precursor',
-      attachments: ['benzene_safety.pdf', 'gc_ms_analysis.xlsx']
-    },
-    {
-      id: 6,
-      name: 'Ethanol',
-      batch: 'SOL-2024-006',
-      smiles: 'CCO',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CCO/PNG',
-      description: 'Common alcohol used as solvent and in pharmaceutical preparations',
-      attachments: ['ethanol_purity.pdf']
-    },
-    {
-      id: 7,
-      name: 'Morphine',
-      batch: 'NAR-2024-007',
-      smiles: 'CN1CC[C@]23C4=C5C=CC(=O)C=C5CC[C@H]2[C@H]1CC6=C3C(=C(C=C6)O)O4',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CN1CC%5BC%40%5D23C4%3DC5C%3DCC(%3DO)C%3DC5CC%5BC%40H%5D2%5BC%40H%5D1CC6%3DC3C(%3DC(C%3DC6)O)O4/PNG',
-      description: 'Opioid analgesic used for severe pain management',
-      attachments: ['morphine_analysis.pdf', 'controlled_substance_log.xlsx', 'batch_record.doc']
-    },
-    {
-      id: 8,
-      name: 'Paracetamol',
-      batch: 'PHM-2024-008',
-      smiles: 'CC(=O)NC1=CC=C(C=C1)O',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CC(%3DO)NC1%3DCC%3DC(C%3DC1)O/PNG',
-      description: 'Acetaminophen, widely used analgesic and antipyretic medication',
-      attachments: ['paracetamol_testing.pdf', 'dissolution_profile.xlsx']
-    },
-    {
-      id: 9,
-      name: 'Vitamin C',
-      batch: 'VIT-2024-009',
-      smiles: 'C([C@@H]([C@@H]([C@H](C(=O)C(=O)O)O)O)O)O',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/C(%5BC%40%40H%5D(%5BC%40%40H%5D(%5BC%40H%5D(C(%3DO)C(%3DO)O)O)O)O)O/PNG',
-      description: 'Essential vitamin, ascorbic acid, important antioxidant',
-      attachments: ['vitamin_c_assay.pdf', 'stability_data.xlsx', 'antioxidant_test.doc']
-    },
-    {
-      id: 10,
-      name: 'Dopamine',
-      batch: 'NEU-2024-010',
-      smiles: 'C1=CC(=C(C=C1CCN)O)O',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/C1%3DCC(%3DC(C%3DC1CCN)O)O/PNG',
-      description: 'Neurotransmitter involved in reward and motivation pathways',
-      attachments: ['dopamine_synthesis.pdf', 'hplc_method.xlsx']
-    },
-    {
-      id: 11,
-      name: 'Penicillin G',
-      batch: 'ANT-2024-011',
-      smiles: 'CC1([C@@H](N2[C@H](S1)[C@@H](C2=O)NC(=O)CC3=CC=CC=C3)C(=O)O)C',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CC1(%5BC%40%40H%5D(N2%5BC%40H%5D(S1)%5BC%40%40H%5D(C2%3DO)NC(%3DO)CC3%3DCC%3DCC%3DC3)C(%3DO)O)C/PNG',
-      description: 'Beta-lactam antibiotic used to treat bacterial infections',
-      attachments: ['penicillin_potency.pdf', 'microbiological_assay.xlsx', 'impurity_profile.doc']
-    },
-    {
-      id: 12,
-      name: 'Cholesterol',
-      batch: 'STE-2024-012',
-      smiles: 'C[C@H](CCCC(C)C)[C@H]1CC[C@@H]2[C@@]1(CC[C@H]3[C@H]2CC=C4[C@@]3(CC[C@@H](C4)O)C)C',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/C%5BC%40H%5D(CCCC(C)C)%5BC%40H%5D1CC%5BC%40%40H%5D2%5BC%40%40%5D1(CC%5BC%40H%5D3%5BC%40H%5D2CC%3DC4%5BC%40%40%5D3(CC%5BC%40%40H%5D(C4)O)C)C/PNG',
-      description: 'Sterol molecule essential for cell membrane structure and function',
-      attachments: ['cholesterol_analysis.pdf', 'lipid_profile.xlsx']
-    },
-    {
-      id: 13,
-      name: 'Codeine',
-      batch: 'NAR-2024-013',
-      smiles: 'COC1=C2C3=C(C[C@@H]4N(CC[C@@]35C2=C(C=C1)OC6=C5C(=CC=C6)O4)C)C=C3',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/COC1%3DC2C3%3DC(C%5BC%40%40H%5D4N(CC%5BC%40%40%5D35C2%3DC(C%3DC1)OC6%3DC5C(%3DCC%3DC6)O4)C)C%3DC3/PNG',
-      description: 'Opioid analgesic used for mild to moderate pain relief',
-      attachments: ['codeine_purity.pdf', 'opioid_screening.xlsx', 'batch_documentation.doc']
-    },
-    {
-      id: 14,
-      name: 'Warfarin',
-      batch: 'ANT-2024-014',
-      smiles: 'CC(=O)CC(C1=CC=CC=C1)C2=C(C3=CC=CC=C3OC2=O)O',
-      smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CC(%3DO)CC(C1%3DCC%3DCC%3DC1)C2%3DC(C3%3DCC%3DCC%3DC3OC2%3DO)O/PNG',
-      description: 'Anticoagulant medication used to prevent blood clots',
-      attachments: ['warfarin_stability.pdf', 'coagulation_test.xlsx']
-    },
-    {
-      id: 15,
-      name: 'Insulin',
-      batch: 'PEP-2024-015',
-      smiles: 'CCC(C)C[C@@H](C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CCC(=O)O)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](CC1=CC=CC=C1)C(=O)N[C@@H](CCC(=O)O)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](CCC(=O)N)C(=O)N[C@@H](CC2=CC=C(C=C2)O)C(=O)N[C@@H]([C@@H](C)O)C(=O)N[C@@H](CCCCN)C(=O)N[C@@H](CC(=O)N)C(=O)N[C@@H](C(C)C)C(=O)N[C@@H](CCC(=O)O)C(=O)N[C@@H](C)C(=O)N[C@@H](CC3=CC=CC=C3)C(=O)N[C@@H](CCC(=O)N)C(=O)N[C@@H](C)C(=O)N[C@@H](CC4=CC=C(C=C4)O)C(=O)N[C@@H](CC(C)C)C(=O)N[C@@H](C(C)C)C(=O)O)NC(=O)[C@H](CC5=CNC6=CC=CC=C65)NC(=O)[C@H](CO)NC(=O)[C@H](CC(=O)N)NC(=O)[C@H](CC(C)C)NC(=O)[C@H](CO)NC(=O)[C@H](CC7=CC=C(C=C7)O)NC(=O)[C@H](CCCCN)NC(=O)[C@H](CC8=CC=CC=C8)NC(=O)[C@H](CCC(=O)N)NC(=O)[C@H](CC9=CNC1=CC=CC=C91)N',
-      smilesImage: '',
-      description: 'Protein hormone essential for glucose metabolism regulation',
-      attachments: ['insulin_bioactivity.pdf', 'protein_analysis.xlsx', 'stability_chamber.doc', 'endotoxin_test.pdf']
-    }
-  ];
-  console.log('Sample table data loaded with', tableData.value.length, 'compounds');
-};
-
-const handleImageError = (event: Event) => {
-  console.warn('Failed to load SMILES image:', (event.target as HTMLImageElement).src);
-  (event.target as HTMLImageElement).style.display = 'none';
-};
-
-// 点击图片放大显示
-const showImageModal = (row: TableRow) => {
-  if (row.smilesImage) {
-    selectedImage.value = {
-      src: row.smilesImage,
-      name: row.name,
-      smiles: row.smiles,
-      description: row.description
-    };
-    showImageDialog.value = true;
-  }
-};
-
-// 关闭图片对话框
-const closeImageDialog = () => {
-  showImageDialog.value = false;
-  selectedImage.value = {
-    src: '',
-    name: '',
-    smiles: '',
-    description: ''
-  };
-};
-
-// 下载图片
-const downloadImage = async () => {
-  if (!selectedImage.value.src) return;
-  
-  try {
-    const response = await fetch(selectedImage.value.src);
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${selectedImage.value.name.replace(/\s+/g, '_')}_structure.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    window.URL.revokeObjectURL(url);
-    console.log('Image downloaded successfully');
-  } catch (error) {
-    console.error('Error downloading image:', error);
-    alert('Failed to download image. Please try again.');
-  }
-};
-
-// 初始化表格数据
-const initializeTable = () => {
-  // 启动时自动加载示例数据
-  loadSampleTableData();
 };
 
 // 保存数据
 const saveData = async () => {
   // 先获取最新的SMILES数据
-  await getSmiles();
+  await getSmilesAndSync();
   
-  const allData = {
-    inputs: inputs.value,
-    tableData: tableData.value,
-    moleculeSmiles: currentSmiles.value
-  };
-  
-  console.log('Saving data:', allData);
-  // 这里可以添加实际的保存逻辑，比如发送到API
-  alert('Data saved successfully!');
+  const success = await saveFormData();
+  if (success) {
+    alert('Data saved successfully!');
+  } else {
+    alert('Failed to save data. Please check the form and try again.');
+  }
 };
 
-// 加载示例数据 (仅针对输入框)
-const loadSampleData = () => {
-  // 填充输入框示例数据
-  inputs.value = {
-    mainParameter: 'project_alpha',
-    parameterA: 'Sample A',
-    parameterB: 'Sample B',
-    parameterC: 'Sample C',
-    parameterD: 'Sample D'
-  };
-  
-  console.log('Sample input data loaded');
+// 初始化
+const initialize = async () => {
+  // 并行加载所有必要的数据
+  await Promise.all([
+    loadMainParameterOptions(),
+    loadProjectTableData(),
+    loadSampleTableData()
+  ]);
+  console.log('Application initialized');
 };
 
 onMounted(() => {
-  initializeTable();
+  initialize();
 });
 </script>
 

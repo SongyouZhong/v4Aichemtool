@@ -61,7 +61,7 @@
           <!-- 第1行：1个下拉框 + 1个按钮 -->
           <div class="input-row row-1">
             <div class="input-item">
-              <label for="dropdown1">Main Parameter:</label>
+              <label for="dropdown1">Project:</label>
               <Dropdown 
                 v-model="inputs.mainParameter" 
                 id="dropdown1"
@@ -311,34 +311,15 @@
       @hide="closeProjectDialog"
     >
       <div class="project-modal-content">
-        <h4>项目信息表格 (2x2)</h4>
-        <div class="project-table">
-          <div class="project-row" v-for="(row, rowIndex) in projectTableData" :key="rowIndex">
-            <div class="project-cell" v-for="(cell, cellIndex) in row" :key="cellIndex">
-              <div class="cell-content">
-                <label>{{ cell.label }}:</label>
-                <span>{{ cell.value }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="project-actions">
-          <Button 
-            label="编辑项目" 
-            icon="pi pi-pencil"
-            @click="editProject"
-            class="edit-project-btn"
-            size="small"
-          />
-          <Button 
-            label="关闭" 
-            icon="pi pi-times"
-            @click="closeProjectDialog"
-            severity="secondary"
-            size="small"
-          />
-        </div>
+        <ProjectList 
+          :projects="projects"
+          :loading="projectLoading"
+          @select-project="handleSelectProject"
+          @edit-project="handleEditProject"
+          @delete-project="handleDeleteProject"
+          @create-project="handleCreateProject"
+          @refresh="refreshProjects"
+        />
       </div>
     </Dialog>
   </div>
@@ -353,10 +334,14 @@ import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Dropdown from 'primevue/dropdown';
 
+// 导入自定义组件
+import ProjectList from '@/components/ProjectList.vue';
+
 // 导入自定义组合式函数
 import { useTableData } from '@/composables/useTableData';
 import { useProjectManagement, useFormData } from '@/composables/useProjectManagement';
 import { useKetcher } from '@/composables/useKetcher';
+import type { Project } from '@/types/data';
 
 // 使用组合式函数
 const {
@@ -384,11 +369,18 @@ const {
   projectTableData,
   showProjectDialog,
   loading: projectLoading,
+  projects,
+  selectedProject,
   loadMainParameterOptions,
   loadProjectTableData,
+  loadProjects,
+  createProject,
+  updateProject,
+  deleteProject,
   handleProjectManagement,
   closeProjectDialog,
-  editProject
+  editProject,
+  refreshProjects
 } = useProjectManagement();
 
 const {
@@ -465,6 +457,53 @@ const handleClearAll = () => {
   clearTable();
   clearMolecule();
   console.log('All data cleared');
+};
+
+// 项目管理相关的事件处理方法
+const handleSelectProject = (project: Project) => {
+  console.log('Selected project:', project);
+  selectedProject.value = project;
+  // 可以在这里设置主参数下拉框的值
+  inputs.value.mainParameter = project.id;
+};
+
+const handleEditProject = (project: Project) => {
+  console.log('Edit project:', project);
+  selectedProject.value = project;
+  // 这里可以打开编辑对话框或其他编辑界面
+  alert(`编辑项目: ${project.name}\n功能待实现`);
+};
+
+const handleDeleteProject = async (project: Project) => {
+  console.log('Delete project:', project);
+  const confirmed = confirm(`确定要删除项目 "${project.name}" 吗？此操作不可撤销。`);
+  if (confirmed) {
+    const success = await deleteProject(project.id);
+    if (success) {
+      alert('项目删除成功');
+    } else {
+      alert('项目删除失败，请稍后重试');
+    }
+  }
+};
+
+const handleCreateProject = () => {
+  console.log('Create new project');
+  // 弹出创建项目的对话框
+  const name = prompt('请输入项目名称:');
+  if (name && name.trim()) {
+    const description = prompt('请输入项目描述（可选）:');
+    createNewProject(name.trim(), description?.trim());
+  }
+};
+
+const createNewProject = async (name: string, description?: string) => {
+  const newProject = await createProject({ name, description });
+  if (newProject) {
+    alert(`项目 "${newProject.name}" 创建成功`);
+  } else {
+    alert('项目创建失败，请稍后重试');
+  }
 };
 
 // SMILES 同步方法

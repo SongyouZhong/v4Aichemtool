@@ -23,6 +23,63 @@ export interface ProjectData {
   value: string;
 }
 
+// 后端API项目类型
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  attachment?: string;
+}
+
+// 创建项目请求类型
+export interface ProjectCreate {
+  name: string;
+  description?: string;
+  attachment?: string;
+}
+
+// 更新项目请求类型
+export interface ProjectUpdate {
+  name?: string;
+  description?: string;
+  attachment?: string;
+}
+
+// 后端API化合物类型
+export interface Compound {
+  id: string;
+  name?: string;
+  batch?: number;
+  smiles?: string;
+  description?: string;
+  patent_issue?: string;
+  patent_comment?: string;
+  synthetic_priority?: string;
+  create_time: string;
+  creator_id?: string;
+}
+
+// 创建化合物请求类型
+export interface CompoundCreate {
+  name?: string;
+  batch?: number;
+  smiles?: string;
+  description?: string;
+  patent_issue?: string;
+  patent_comment?: string;
+  synthetic_priority?: string;
+  creator_id?: string;
+}
+
+// 分页响应类型
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}
+
 // 输入表单数据类型
 export interface InputFormData {
   mainParameter: string | null;

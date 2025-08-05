@@ -27,10 +27,17 @@
         v-for="project in projects" 
         :key="project.id" 
         class="project-card"
+        :class="{ 'project-card--selected': selectedProject && selectedProject.id === project.id }"
         @click="$emit('select-project', project)"
       >
         <div class="project-header">
-          <h4 class="project-title">{{ project.name }}</h4>
+          <h4 class="project-title">
+            {{ project.name }}
+            <i v-if="selectedProject && selectedProject.id === project.id" 
+               class="pi pi-check-circle selected-indicator" 
+               v-tooltip.top="'当前选中'"
+            ></i>
+          </h4>
           <div class="project-actions">
             <Button 
               icon="pi pi-pencil" 
@@ -91,6 +98,7 @@ import type { Project } from '@/types/data'
 defineProps<{
   projects: Project[]
   loading: boolean
+  selectedProject?: Project | null
 }>()
 
 // Emits
@@ -154,12 +162,36 @@ defineEmits<{
   background: #fff;
   transition: all 0.2s ease;
   cursor: pointer;
+  position: relative;
 }
 
 .project-card:hover {
   border-color: var(--p-primary-color);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transform: translateY(-2px);
+}
+
+.project-card--selected {
+  border-color: var(--p-primary-color);
+  background: linear-gradient(135deg, rgba(var(--p-primary-500-rgb), 0.05) 0%, rgba(var(--p-primary-500-rgb), 0.02) 100%);
+  box-shadow: 0 4px 12px rgba(var(--p-primary-500-rgb), 0.15);
+  transform: translateY(-1px);
+}
+
+.project-card--selected .project-title {
+  color: var(--p-primary-600);
+  font-weight: 700;
+}
+
+.project-card--selected::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--p-primary-500), var(--p-primary-600));
+  border-radius: 8px 8px 0 0;
 }
 
 .project-header {
@@ -178,6 +210,21 @@ defineEmits<{
   font-weight: 600;
   flex: 1;
   word-break: break-word;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.selected-indicator {
+  color: var(--p-green-500);
+  font-size: 1rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.6; }
+  100% { opacity: 1; }
 }
 
 .project-actions {

@@ -76,6 +76,13 @@ export function useProjectManagement() {
     try {
       const projectList = await ProjectApiService.getAllProjects()
       projects.value = projectList
+      
+      // 如果当前没有选中项目且项目列表不为空，自动选中第一个项目
+      if (!selectedProject.value && projectList.length > 0) {
+        selectedProject.value = projectList[0]
+        console.log('Auto-selected first project:', projectList[0])
+      }
+      
       console.log('Projects loaded:', projectList.length)
     } catch (error) {
       console.error('Failed to load projects:', error)
@@ -92,6 +99,13 @@ export function useProjectManagement() {
     try {
       const newProject = await ProjectApiService.createProject(projectData)
       projects.value.push(newProject)
+      
+      // 如果这是第一个项目，自动选中它
+      if (projects.value.length === 1) {
+        selectedProject.value = newProject
+        console.log('Auto-selected newly created first project:', newProject)
+      }
+      
       console.log('Project created:', newProject)
       return newProject
     } catch (error) {
@@ -126,7 +140,20 @@ export function useProjectManagement() {
     loading.value = true
     try {
       await ProjectApiService.deleteProject(id)
+      
+      // 如果删除的是当前选中的项目，需要重新选择
+      const wasSelected = selectedProject.value?.id === id
+      
       projects.value = projects.value.filter(p => p.id !== id)
+      
+      // 如果删除的是选中的项目，自动选中第一个剩余项目
+      if (wasSelected) {
+        selectedProject.value = projects.value.length > 0 ? projects.value[0] : null
+        if (selectedProject.value) {
+          console.log('Auto-selected project after deletion:', selectedProject.value)
+        }
+      }
+      
       console.log('Project deleted:', id)
       return true
     } catch (error) {
@@ -147,7 +174,7 @@ export function useProjectManagement() {
   // 关闭项目对话框
   const closeProjectDialog = (): void => {
     showProjectDialog.value = false
-    selectedProject.value = null
+    // 不要重置 selectedProject，保持用户的选择
   }
 
   // 编辑项目

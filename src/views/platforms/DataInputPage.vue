@@ -59,23 +59,24 @@
           <h3>Input Parameters</h3>
           
           <!-- 第1行：1个下拉框 + 1个按钮 -->
-          <div class="input-row row-1">
-            <div class="input-item">
-              <label for="dropdown1">Project:</label>
-              <Dropdown 
-                v-model="inputs.mainParameter" 
-                id="dropdown1"
-                :options="mainParameterOptions" 
-                optionLabel="label" 
-                optionValue="value"
-                placeholder="Select a project"
-                class="w-full"
-              />
-            </div>
-            <Button label="项目管理" @click="handleProjectManagement" class="row-btn" />
+        <div class="input-row row-1">
+          <div class="input-item">
+            <label for="current-project">Current Project:</label>
+            <InputText 
+              id="current-project"
+              :value="currentProjectDisplay"
+              readonly
+              placeholder="No project selected"
+              class="w-full project-display"
+            />
           </div>
-          
-          <!-- 第2行：2个输入框 -->
+          <Button 
+            label="Project Management" 
+            icon="pi pi-cog" 
+            @click="handleProjectManagement"
+            class="row-btn"
+          />
+        </div>          <!-- 第2行：2个输入框 -->
           <div class="input-row row-2">
             <div class="input-item">
               <label for="input2">Compound Name:</label>
@@ -314,12 +315,51 @@
         <ProjectList 
           :projects="projects"
           :loading="projectLoading"
+          :selectedProject="selectedProject"
           @select-project="handleSelectProject"
           @edit-project="handleEditProject"
           @delete-project="handleDeleteProject"
           @create-project="handleCreateProject"
           @refresh="refreshProjects"
         />
+      </div>
+    </Dialog>
+    
+    <!-- 项目切换确认对话框 -->
+    <Dialog 
+      v-model:visible="showProjectSwitchDialog" 
+      header="确认切换项目"
+      :modal="true" 
+      :closable="true"
+      :draggable="false"
+      :resizable="false"
+      class="project-switch-dialog"
+      @hide="closeSwitchDialog"
+    >
+      <div class="switch-dialog-content">
+        <div class="warning-message">
+          <i class="pi pi-exclamation-triangle warning-icon"></i>
+          <div class="message-text">
+            <h4>您即将切换项目</h4>
+            <p>当前项目: <strong>{{ selectedProject?.name || 'None' }}</strong></p>
+            <p>切换到: <strong>{{ pendingProject?.name || 'None' }}</strong></p>
+            <p class="warning-text">切换项目可能会影响当前的工作状态，确定要继续吗？</p>
+          </div>
+        </div>
+        
+        <div class="dialog-actions">
+          <Button 
+            label="取消" 
+            icon="pi pi-times" 
+            severity="secondary"
+            @click="cancelSwitch"
+          />
+          <Button 
+            label="确认切换" 
+            icon="pi pi-check" 
+            @click="confirmSwitch"
+          />
+        </div>
       </div>
     </Dialog>
   </div>
@@ -406,6 +446,18 @@ const {
   setKetcherFrame
 } = useKetcher();
 
+// 计算属性：当前选中项目的显示
+const currentProjectDisplay = computed(() => {
+  if (selectedProject.value) {
+    return `${selectedProject.value.name}${selectedProject.value.description ? ' - ' + selectedProject.value.description : ''}`;
+  }
+  return 'No project selected';
+});
+
+// 项目切换确认对话框相关
+const showProjectSwitchDialog = ref(false);
+const pendingProject = ref<Project | null>(null);
+
 // 业务逻辑方法
 const handleProcess = () => {
   console.log('Process clicked');
@@ -462,15 +514,49 @@ const handleClearAll = () => {
 // 项目管理相关的事件处理方法
 const handleSelectProject = (project: Project) => {
   console.log('Selected project:', project);
-  selectedProject.value = project;
-  // 可以在这里设置主参数下拉框的值
-  inputs.value.mainParameter = project.id;
+  
+  // 如果没有当前选中的项目，直接选中
+  if (!selectedProject.value) {
+    selectedProject.value = project;
+    inputs.value.mainParameter = project.id;
+    return;
+  }
+  
+  // 如果选择的是同一个项目，不需要确认
+  if (selectedProject.value.id === project.id) {
+    return;
+  }
+  
+  // 需要切换项目，显示确认对话框
+  pendingProject.value = project;
+  showProjectSwitchDialog.value = true;
+};
+
+// 项目切换确认对话框相关方法
+const closeSwitchDialog = () => {
+  showProjectSwitchDialog.value = false;
+  pendingProject.value = null;
+};
+
+const cancelSwitch = () => {
+  console.log('Project switch cancelled');
+  closeSwitchDialog();
+};
+
+const confirmSwitch = () => {
+  console.log('Project switch confirmed');
+  if (pendingProject.value) {
+    // 更新选中的项目
+    selectedProject.value = pendingProject.value;
+    inputs.value.mainParameter = pendingProject.value.id;
+    console.log('Switched to project:', pendingProject.value);
+  }
+  closeSwitchDialog();
 };
 
 const handleEditProject = (project: Project) => {
   console.log('Edit project:', project);
-  selectedProject.value = project;
-  // 这里可以打开编辑对话框或其他编辑界面
+  // 不应该改变当前选中的项目，只是编辑项目信息
   alert(`编辑项目: ${project.name}\n功能待实现`);
 };
 
@@ -578,6 +664,12 @@ const initialize = async () => {
     loadProjectTableData(),
     loadSampleTableData()
   ]);
+  
+  // 自动选中第一个项目（如果有的话）
+  if (projects.value.length > 0 && !selectedProject.value) {
+    handleSelectProject(projects.value[0]);
+  }
+  
   console.log('Application initialized');
 };
 
@@ -1036,6 +1128,75 @@ onMounted(() => {
   min-width: 120px;
 }
 
+/* 项目切换确认对话框样式 */
+.project-switch-dialog {
+  max-width: 500px;
+}
+
+.switch-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 400px;
+}
+
+.warning-message {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 8px;
+  border-left: 4px solid #f39c12;
+}
+
+.warning-icon {
+  color: #f39c12;
+  font-size: 1.5rem;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.message-text {
+  flex: 1;
+}
+
+.message-text h4 {
+  margin: 0 0 0.75rem 0;
+  color: #856404;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.message-text p {
+  margin: 0 0 0.5rem 0;
+  color: #856404;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.message-text p:last-child {
+  margin-bottom: 0;
+}
+
+.warning-text {
+  font-weight: 500;
+  color: #b8860b !important;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.dialog-actions button {
+  min-width: 120px;
+}
+
 @media (max-width: 768px) {
   .top-section {
     grid-template-columns: 1fr;
@@ -1156,5 +1317,19 @@ onMounted(() => {
   font-style: italic;
   margin-top: 0.25rem;
   display: block;
+}
+
+/* 项目显示字段样式 */
+.project-display {
+  background-color: #f8f9fa !important;
+  border: 1px solid #ced4da !important;
+  color: #495057 !important;
+  font-weight: 500;
+  cursor: default;
+}
+
+.project-display:focus {
+  border-color: var(--p-primary-color) !important;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
 }
 </style>

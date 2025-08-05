@@ -149,7 +149,7 @@
             
             <Column field="batch" header="Batch" style="min-width: 120px">
               <template #body="slotProps">
-                <span>{{ slotProps.data.batch }}</span>
+                <span>{{ slotProps.data.batch ?? '-' }}</span>
               </template>
             </Column>
             
@@ -231,6 +231,14 @@
             icon="pi pi-file-import"
             @click="loadSampleTableData"
             class="action-btn"
+          />
+          <Button 
+            label="Refresh Data" 
+            severity="success" 
+            icon="pi pi-refresh"
+            @click="handleRefreshTable"
+            class="action-btn"
+            :loading="tableLoading"
           />
           <Button 
             label="Clear Table" 
@@ -529,6 +537,10 @@ const handleSave = () => {
   showSaveConfirmDialog.value = true;
 };
 
+const handleRefreshTable = async () => {
+  await loadTableData();
+};
+
 const handleValidate = () => {
   console.log('Validate clicked');
   const isValid = validateForm();
@@ -663,7 +675,10 @@ const confirmSaveCompound = async () => {
     // 关闭对话框
     closeSaveConfirmDialog();
     
-    // 可选：重置表单或刷新数据
+    // 刷新表格数据以显示新保存的化合物
+    await loadTableData();
+    
+    // 可选：重置表单
     // resetForm();
     
   } catch (error) {
@@ -782,7 +797,7 @@ const initialize = async () => {
   await Promise.all([
     loadMainParameterOptions(),
     loadProjectTableData(),
-    loadSampleTableData()
+    loadTableData() // 加载真实的数据库数据
   ]);
   
   // 自动选中第一个项目（如果有的话）

@@ -1,14 +1,19 @@
 // 数据相关的类型定义
 
-// 表格行数据类型
+// 表格行数据类型（基于Compound模型）
 export interface TableRow {
-  id: number;
+  id: string;
   name: string;
-  batch: string;
+  batch: number | null;
   smiles: string;
-  smilesImage: string;
+  smilesImage?: string; // 可选，暂时为空
   description: string;
-  attachments: string[];
+  patent_issue?: string;
+  patent_comment?: string;
+  synthetic_priority?: string;
+  create_time: string;
+  creator_id?: string;
+  attachments?: string[]; // 保留以兼容现有代码
 }
 
 // 主参数选项类型

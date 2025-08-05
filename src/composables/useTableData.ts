@@ -2,14 +2,17 @@
 // 封装表格数据操作的逻辑
 
 import { ref, computed } from 'vue'
-import type { TableRow, ImageDialogData } from '@/types'
-import { TableDataService } from '@/services/dataService'
+import type { TableRow, ImageDialogData, Compound } from '@/types'
+import { CompoundApiService } from '@/services/compoundApi'
 
 export function useTableData() {
   // 响应式数据
   const tableData = ref<TableRow[]>([])
   const rows = ref(15)
   const loading = ref(false)
+  const total = ref(0)
+  const currentPage = ref(1)
+  const pageSize = ref(10)
   
   // 图片对话框
   const showImageDialog = ref(false)
@@ -24,101 +27,154 @@ export function useTableData() {
   const scrollable = computed(() => rows.value > 15)
   const scrollHeight = computed(() => rows.value > 15 ? '400px' : undefined)
 
-  // 加载表格数据
-  const loadTableData = async (): Promise<void> => {
+  // 将Compound转换为TableRow
+  const compoundToTableRow = (compound: Compound): TableRow => {
+    return {
+      id: compound.id,
+      name: compound.name || '',
+      batch: compound.batch || null,
+      smiles: compound.smiles || '',
+      smilesImage: '', // 暂时留空
+      description: compound.description || '',
+      patent_issue: compound.patent_issue,
+      patent_comment: compound.patent_comment,
+      synthetic_priority: compound.synthetic_priority,
+      create_time: compound.create_time,
+      creator_id: compound.creator_id,
+      attachments: [] // 暂时为空数组
+    }
+  }
+
+  // 加载表格数据（从数据库）
+  const loadTableData = async (page = 1, size = 10): Promise<void> => {
     loading.value = true
     try {
-      tableData.value = await TableDataService.getTableData()
-      console.log('Table data loaded:', tableData.value.length, 'items')
+      const response = await CompoundApiService.getCompounds({
+        page,
+        size
+      })
+      
+      tableData.value = response.items.map(compoundToTableRow)
+      total.value = response.total
+      currentPage.value = response.page
+      pageSize.value = response.size
+      
+      console.log('Table data loaded from database:', tableData.value.length, 'items')
     } catch (error) {
-      console.error('Failed to load table data:', error)
+      console.error('Failed to load table data from database:', error)
+      // 如果数据库查询失败，显示空数据
+      tableData.value = []
+      total.value = 0
     } finally {
       loading.value = false
     }
   }
 
-  // 加载示例数据
+  // 加载示例数据（从数据库加载所有数据作为示例）
   const loadSampleData = async (): Promise<void> => {
     loading.value = true
     try {
-      tableData.value = await TableDataService.loadSampleData()
-      console.log('Sample data loaded:', tableData.value.length, 'items')
+      // 加载更多数据作为示例显示
+      const response = await CompoundApiService.getCompounds({
+        page: 1,
+        size: 50 // 加载更多数据
+      })
+      
+      tableData.value = response.items.map(compoundToTableRow)
+      total.value = response.total
+      
+      console.log('Sample data loaded from database:', tableData.value.length, 'items')
     } catch (error) {
-      console.error('Failed to load sample data:', error)
+      console.error('Failed to load sample data from database:', error)
+      tableData.value = []
+      total.value = 0
     } finally {
       loading.value = false
     }
   }
 
-  // 添加新行
+  // 添加新行（创建新化合物）
   const addNewRow = async (): Promise<void> => {
     try {
-      const newRow = await TableDataService.addTableRow({
+      const newCompoundData = {
         name: 'New Compound',
-        batch: '',
+        batch: 1,
         smiles: '',
-        smilesImage: '',
-        description: '',
-        attachments: []
-      })
+        description: 'New compound created from table',
+        creator_id: 'current_user'
+      }
+      
+      const newCompound = await CompoundApiService.createCompound(newCompoundData)
+      const newRow = compoundToTableRow(newCompound)
       tableData.value.push(newRow)
-      console.log('New row added:', newRow)
+      total.value += 1
+      
+      console.log('New compound added:', newCompound)
     } catch (error) {
-      console.error('Failed to add new row:', error)
+      console.error('Failed to add new compound:', error)
+      alert('添加化合物失败，请稍后重试。')
     }
   }
 
-  // 编辑行
+  // 编辑行（更新化合物）
   const editRow = async (row: TableRow): Promise<void> => {
-    console.log('Editing row:', row)
+    console.log('Editing compound:', row)
     // 这里可以打开编辑对话框或进入编辑模式
     // 目前使用简单的prompt演示
-    const newName = prompt('Edit name:', row.name)
+    const newName = prompt('Edit compound name:', row.name)
     if (newName !== null && newName !== row.name) {
       try {
-        const updatedRow = await TableDataService.updateTableRow(row.id, { name: newName })
-        if (updatedRow) {
-          const index = tableData.value.findIndex(r => r.id === row.id)
-          if (index !== -1) {
-            tableData.value[index] = updatedRow
-          }
-        }
-      } catch (error) {
-        console.error('Failed to update row:', error)
-      }
-    }
-  }
-
-  // 删除行
-  const deleteRow = async (row: TableRow): Promise<void> => {
-    if (!confirm(`Are you sure you want to delete "${row.name}"?`)) {
-      return
-    }
-
-    try {
-      const success = await TableDataService.deleteTableRow(row.id)
-      if (success) {
+        const updatedCompound = await CompoundApiService.updateCompound(row.id, { 
+          name: newName 
+        })
+        
+        const updatedRow = compoundToTableRow(updatedCompound)
         const index = tableData.value.findIndex(r => r.id === row.id)
         if (index !== -1) {
-          tableData.value.splice(index, 1)
-          console.log('Row deleted:', row)
+          tableData.value[index] = updatedRow
         }
+        console.log('Compound updated:', updatedCompound)
+      } catch (error) {
+        console.error('Failed to update compound:', error)
+        alert('更新化合物失败，请稍后重试。')
       }
-    } catch (error) {
-      console.error('Failed to delete row:', error)
     }
   }
 
-  // 清空表格
-  const clearTable = async (): Promise<void> => {
-    if (!confirm('Are you sure you want to clear all table data?')) {
+  // 删除行（删除化合物）
+  const deleteRow = async (row: TableRow): Promise<void> => {
+    if (!confirm(`Are you sure you want to delete compound "${row.name}"?`)) {
       return
     }
 
     try {
-      await TableDataService.clearTable()
+      await CompoundApiService.deleteCompound(row.id)
+      
+      const index = tableData.value.findIndex(r => r.id === row.id)
+      if (index !== -1) {
+        tableData.value.splice(index, 1)
+        total.value -= 1
+        console.log('Compound deleted:', row)
+      }
+    } catch (error) {
+      console.error('Failed to delete compound:', error)
+      alert('删除化合物失败，请稍后重试。')
+    }
+  }
+
+  // 清空表格（注意：这将删除所有化合物数据）
+  const clearTable = async (): Promise<void> => {
+    if (!confirm('Are you sure you want to clear all compound data? This action cannot be undone!')) {
+      return
+    }
+
+    try {
+      // 由于这是危险操作，我们只清空前端显示的数据
+      // 实际的数据库清空操作应该需要管理员权限
       tableData.value = []
-      console.log('Table cleared')
+      total.value = 0
+      console.log('Table display cleared (database data preserved)')
+      alert('表格显示已清空。如需删除数据库中的数据，请使用管理员权限。')
     } catch (error) {
       console.error('Failed to clear table:', error)
     }
@@ -186,6 +242,9 @@ export function useTableData() {
     loading,
     showImageDialog,
     selectedImage,
+    total,
+    currentPage,
+    pageSize,
     
     // 计算属性
     scrollable,

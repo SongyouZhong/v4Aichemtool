@@ -103,7 +103,7 @@
           
           <!-- 第4行：4个按钮 -->
           <div class="input-row row-4">
-            <Button label="Process" @click="handleProcess" class="row-btn" />
+            <Button label="Save" @click="handleSave" class="row-btn" />
             <Button label="Validate" @click="handleValidate" class="row-btn" severity="info" />
             <Button label="Calculate" @click="handleCalculate" class="row-btn" severity="success" />
             <Button label="Reset" @click="handleReset" class="row-btn" severity="secondary" />
@@ -362,6 +362,63 @@
         </div>
       </div>
     </Dialog>
+
+    <!-- 保存化合物确认对话框 -->
+    <Dialog 
+      v-model:visible="showSaveConfirmDialog" 
+      header="确认保存化合物"
+      :modal="true" 
+      :closable="true"
+      :draggable="false"
+      :resizable="false"
+      class="save-confirm-dialog"
+      @hide="closeSaveConfirmDialog"
+    >
+      <div class="confirm-dialog-content">
+        <div class="confirmation-message">
+          <i class="pi pi-question-circle question-icon"></i>
+          <div class="message-text">
+            <h4>确认保存化合物信息</h4>
+            <p>您即将保存以下化合物信息到数据库中：</p>
+            <div class="compound-summary">
+              <div class="summary-row">
+                <label>化合物名称:</label>
+                <span>{{ inputs.compoundName || '未设置' }}</span>
+              </div>
+              <div class="summary-row">
+                <label>化合物批次:</label>
+                <span>{{ inputs.compoundBatch || '未设置' }}</span>
+              </div>
+              <div class="summary-row">
+                <label>SMILES:</label>
+                <span class="smiles-value">{{ inputs.compoundSmiles || '未设置' }}</span>
+              </div>
+              <div class="summary-row">
+                <label>备注:</label>
+                <span>{{ inputs.compoundNote || '未设置' }}</span>
+              </div>
+            </div>
+            <p class="confirm-text">确定要保存吗？</p>
+          </div>
+        </div>
+        
+        <div class="dialog-actions">
+          <Button 
+            label="取消" 
+            icon="pi pi-times" 
+            severity="secondary"
+            @click="closeSaveConfirmDialog"
+            :disabled="saveLoading"
+          />
+          <Button 
+            label="确认保存" 
+            icon="pi pi-check" 
+            @click="confirmSaveCompound"
+            :loading="saveLoading"
+          />
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -382,6 +439,9 @@ import { useTableData } from '@/composables/useTableData';
 import { useProjectManagement, useFormData } from '@/composables/useProjectManagement';
 import { useKetcher } from '@/composables/useKetcher';
 import type { Project } from '@/types/data';
+
+// 导入API服务
+import { CompoundApiService } from '@/services/compoundApi';
 
 // 使用组合式函数
 const {
@@ -458,10 +518,15 @@ const currentProjectDisplay = computed(() => {
 const showProjectSwitchDialog = ref(false);
 const pendingProject = ref<Project | null>(null);
 
+// 保存确认对话框相关
+const showSaveConfirmDialog = ref(false);
+const saveLoading = ref(false);
+
 // 业务逻辑方法
-const handleProcess = () => {
-  console.log('Process clicked');
-  // 这里添加处理逻辑
+const handleSave = () => {
+  console.log('Save clicked');
+  // 先获取最新的SMILES数据，然后显示确认对话框
+  showSaveConfirmDialog.value = true;
 };
 
 const handleValidate = () => {
@@ -552,6 +617,61 @@ const confirmSwitch = () => {
     console.log('Switched to project:', pendingProject.value);
   }
   closeSwitchDialog();
+};
+
+// 保存确认对话框相关方法
+const closeSaveConfirmDialog = () => {
+  showSaveConfirmDialog.value = false;
+};
+
+const confirmSaveCompound = async () => {
+  console.log('Confirm save compound');
+  saveLoading.value = true;
+  
+  try {
+    // 先获取最新的SMILES数据
+    await getSmilesAndSync();
+    
+    // 验证必要字段
+    if (!inputs.value.compoundName.trim()) {
+      alert('请输入化合物名称');
+      return;
+    }
+    
+    if (!inputs.value.compoundSmiles.trim()) {
+      alert('请输入或绘制化合物的SMILES结构');
+      return;
+    }
+    
+    // 准备化合物数据
+    const compoundData = {
+      name: inputs.value.compoundName.trim(),
+      batch: inputs.value.compoundBatch ? parseInt(inputs.value.compoundBatch) : undefined,
+      smiles: inputs.value.compoundSmiles.trim(),
+      description: inputs.value.compoundNote.trim() || undefined,
+      creator_id: 'current_user' // 这里应该从认证系统获取当前用户ID
+    };
+    
+    console.log('Saving compound data:', compoundData);
+    
+    // 调用API保存化合物
+    const savedCompound = await CompoundApiService.createCompound(compoundData);
+    
+    console.log('Compound saved successfully:', savedCompound);
+    alert(`化合物 "${savedCompound.name}" 保存成功！\nID: ${savedCompound.id}`);
+    
+    // 关闭对话框
+    closeSaveConfirmDialog();
+    
+    // 可选：重置表单或刷新数据
+    // resetForm();
+    
+  } catch (error) {
+    console.error('Failed to save compound:', error);
+    alert('保存化合物失败，请稍后重试。');
+  } finally {
+    saveLoading.value = false;
+  }
 };
 
 const handleEditProject = (project: Project) => {
@@ -1195,6 +1315,104 @@ onMounted(() => {
 
 .dialog-actions button {
   min-width: 120px;
+}
+
+/* 保存确认对话框样式 */
+.save-confirm-dialog {
+  max-width: 600px;
+}
+
+.confirm-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 500px;
+}
+
+.confirmation-message {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem;
+  background: #e8f5e8;
+  border: 1px solid #c3e6c3;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.question-icon {
+  color: #28a745;
+  font-size: 1.5rem;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.message-text h4 {
+  margin: 0 0 0.75rem 0;
+  color: #155724;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.message-text p {
+  margin: 0 0 0.5rem 0;
+  color: #155724;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.compound-summary {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.summary-row:last-child {
+  margin-bottom: 0;
+}
+
+.summary-row label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+  min-width: 120px;
+}
+
+.summary-row span {
+  color: #212529;
+  font-size: 0.9rem;
+  flex: 1;
+  text-align: right;
+  word-break: break-word;
+}
+
+.smiles-value {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.8rem !important;
+  background: #ffffff;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confirm-text {
+  font-weight: 500;
+  color: #155724 !important;
+  margin-top: 1rem !important;
 }
 
 @media (max-width: 768px) {

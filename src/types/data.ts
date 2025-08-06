@@ -13,6 +13,7 @@ export interface TableRow {
   synthetic_priority?: string;
   create_time: string;
   creator_id?: string;
+  project_id?: string; // 添加项目ID
   attachments?: string[]; // 保留以兼容现有代码
 }
 
@@ -62,6 +63,7 @@ export interface Compound {
   synthetic_priority?: string;
   create_time: string;
   creator_id?: string;
+  project_id?: string; // 添加项目ID
 }
 
 // 创建化合物请求类型
@@ -74,6 +76,7 @@ export interface CompoundCreate {
   patent_comment?: string;
   synthetic_priority?: string;
   creator_id?: string;
+  project_id?: string; // 添加项目ID
 }
 
 // 分页响应类型

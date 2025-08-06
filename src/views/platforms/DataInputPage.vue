@@ -219,14 +219,14 @@
           <Button 
             label="Add New Row" 
             icon="pi pi-plus"
-            @click="addNewRow"
+            @click="() => addNewRow(selectedProject?.id)"
             class="action-btn"
           />
           <Button 
             label="Load Sample Data" 
             severity="info" 
             icon="pi pi-file-import"
-            @click="loadSampleTableData"
+            @click="() => loadSampleTableData(selectedProject?.id)"
             class="action-btn"
           />
           <Button 
@@ -535,7 +535,7 @@ const handleSave = () => {
 };
 
 const handleRefreshTable = async () => {
-  await loadTableData();
+  await loadTableData(1, 10, selectedProject.value?.id);
 };
 
 const handleValidate = () => {
@@ -586,13 +586,15 @@ const handleClearAll = () => {
 };
 
 // 项目管理相关的事件处理方法
-const handleSelectProject = (project: Project) => {
+const handleSelectProject = async (project: Project) => {
   console.log('Selected project:', project);
   
-  // 如果没有当前选中的项目，直接选中
+  // 如果没有当前选中的项目，直接选中并加载数据
   if (!selectedProject.value) {
     selectedProject.value = project;
     inputs.value.mainParameter = project.id;
+    // 加载该项目的化合物数据
+    await loadTableData(1, 10, project.id);
     return;
   }
   
@@ -617,13 +619,16 @@ const cancelSwitch = () => {
   closeSwitchDialog();
 };
 
-const confirmSwitch = () => {
+const confirmSwitch = async () => {
   console.log('Project switch confirmed');
   if (pendingProject.value) {
     // 更新选中的项目
     selectedProject.value = pendingProject.value;
     inputs.value.mainParameter = pendingProject.value.id;
     console.log('Switched to project:', pendingProject.value);
+    
+    // 重新加载表格数据以显示新项目的化合物
+    await loadTableData(1, 10, pendingProject.value.id);
   }
   closeSwitchDialog();
 };
@@ -652,13 +657,22 @@ const confirmSaveCompound = async () => {
       return;
     }
     
+    // 警告用户如果没有选择项目
+    if (!selectedProject.value) {
+      const proceed = confirm('没有选择项目，化合物将不会关联到任何项目。确定要继续保存吗？');
+      if (!proceed) {
+        return;
+      }
+    }
+    
     // 准备化合物数据
     const compoundData = {
       name: inputs.value.compoundName.trim(),
       batch: inputs.value.compoundBatch ? parseInt(inputs.value.compoundBatch) : undefined,
       smiles: inputs.value.compoundSmiles.trim(),
       description: inputs.value.compoundNote.trim() || undefined,
-      creator_id: 'current_user' // 这里应该从认证系统获取当前用户ID
+      creator_id: 'current_user', // 这里应该从认证系统获取当前用户ID
+      project_id: selectedProject.value?.id // 关联到当前选中的项目
     };
     
     console.log('Saving compound data:', compoundData);
@@ -672,8 +686,8 @@ const confirmSaveCompound = async () => {
     // 关闭对话框
     closeSaveConfirmDialog();
     
-    // 刷新表格数据以显示新保存的化合物
-    await loadTableData();
+    // 刷新表格数据以显示新保存的化合物（基于当前选中的项目）
+    await loadTableData(1, 10, selectedProject.value?.id);
     
     // 可选：重置表单
     // resetForm();
@@ -794,12 +808,15 @@ const initialize = async () => {
   await Promise.all([
     loadMainParameterOptions(),
     loadProjectTableData(),
-    loadTableData() // 加载真实的数据库数据
+    loadProjects() // 先加载项目列表
   ]);
   
-  // 自动选中第一个项目（如果有的话）
+  // 自动选中第一个项目（如果有的话）并加载其化合物数据
   if (projects.value.length > 0 && !selectedProject.value) {
-    handleSelectProject(projects.value[0]);
+    await handleSelectProject(projects.value[0]);
+  } else {
+    // 如果没有项目，加载所有化合物数据
+    await loadTableData();
   }
   
   console.log('Application initialized');

@@ -11,11 +11,13 @@ export class CompoundApiService {
     page?: number
     size?: number
     name?: string
+    project_id?: string
   } = {}): Promise<PaginatedResponse<Compound>> {
     const queryParams = {
       page: params.page || PAGINATION_CONFIG.DEFAULT_PAGE,
       size: params.size || PAGINATION_CONFIG.DEFAULT_SIZE,
-      ...(params.name && { name: params.name })
+      ...(params.name && { name: params.name }),
+      ...(params.project_id && { project_id: params.project_id })
     }
 
     const response = await apiClient.get<PaginatedResponse<Compound>>(

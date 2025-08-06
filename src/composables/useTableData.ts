@@ -42,17 +42,19 @@ export function useTableData() {
       synthetic_priority: compound.synthetic_priority,
       create_time: compound.create_time,
       creator_id: compound.creator_id,
+      project_id: compound.project_id, // 添加项目ID
       attachments: [] // 暂时为空数组
     }
   }
 
   // 加载表格数据（从数据库）
-  const loadTableData = async (page = 1, size = 10): Promise<void> => {
+  const loadTableData = async (page = 1, size = 10, projectId?: string): Promise<void> => {
     loading.value = true
     try {
       const response = await CompoundApiService.getCompounds({
         page,
-        size
+        size,
+        ...(projectId && { project_id: projectId })
       })
       
       tableData.value = response.items.map(compoundToTableRow)
@@ -60,7 +62,7 @@ export function useTableData() {
       currentPage.value = response.page
       pageSize.value = response.size
       
-      console.log('Table data loaded from database:', tableData.value.length, 'items')
+      console.log('Table data loaded from database:', tableData.value.length, 'items', projectId ? `for project: ${projectId}` : '(all projects)')
     } catch (error) {
       console.error('Failed to load table data from database:', error)
       // 如果数据库查询失败，显示空数据
@@ -72,19 +74,20 @@ export function useTableData() {
   }
 
   // 加载示例数据（从数据库加载所有数据作为示例）
-  const loadSampleData = async (): Promise<void> => {
+  const loadSampleData = async (projectId?: string): Promise<void> => {
     loading.value = true
     try {
       // 加载更多数据作为示例显示
       const response = await CompoundApiService.getCompounds({
         page: 1,
-        size: 50 // 加载更多数据
+        size: 50, // 加载更多数据
+        ...(projectId && { project_id: projectId })
       })
       
       tableData.value = response.items.map(compoundToTableRow)
       total.value = response.total
       
-      console.log('Sample data loaded from database:', tableData.value.length, 'items')
+      console.log('Sample data loaded from database:', tableData.value.length, 'items', projectId ? `for project: ${projectId}` : '(all projects)')
     } catch (error) {
       console.error('Failed to load sample data from database:', error)
       tableData.value = []
@@ -95,14 +98,15 @@ export function useTableData() {
   }
 
   // 添加新行（创建新化合物）
-  const addNewRow = async (): Promise<void> => {
+  const addNewRow = async (projectId?: string): Promise<void> => {
     try {
       const newCompoundData = {
         name: 'New Compound',
         batch: 1,
         smiles: '',
         description: 'New compound created from table',
-        creator_id: 'current_user'
+        creator_id: 'current_user',
+        ...(projectId && { project_id: projectId })
       }
       
       const newCompound = await CompoundApiService.createCompound(newCompoundData)

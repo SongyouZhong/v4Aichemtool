@@ -4,6 +4,7 @@
 import { ref, computed } from 'vue'
 import type { TableRow, ImageDialogData, Compound } from '@/types'
 import { CompoundApiService } from '@/services/compoundApi'
+import { SmilesApiService } from '@/services/smilesApi'
 
 export function useTableData() {
   // 响应式数据
@@ -34,7 +35,7 @@ export function useTableData() {
       name: compound.name || '',
       batch: compound.batch || null,
       smiles: compound.smiles || '',
-      smilesImage: '', // 暂时留空
+      smilesImage: compound.smiles ? SmilesApiService.getSmilesImageUrl(compound.smiles) : '', // 使用SMILES API生成图片URL
       description: compound.description || '',
       patent_issue: compound.patent_issue,
       patent_comment: compound.patent_comment,
@@ -193,6 +194,40 @@ export function useTableData() {
     }
   }
 
+  // 处理图片错误
+  const handleImageError = (event: Event): void => {
+    const img = event.target as HTMLImageElement
+    console.warn('Failed to load SMILES image:', img.src)
+    // 隐藏无法加载的图片，显示占位文本
+    img.style.display = 'none'
+    
+    // 可选：在图片旁边显示错误提示
+    const parent = img.parentElement
+    if (parent && !parent.querySelector('.image-error-text')) {
+      const errorText = document.createElement('div')
+      errorText.className = 'image-error-text no-image'
+      errorText.textContent = '图片加载失败'
+      parent.appendChild(errorText)
+    }
+  }
+
+  // 验证并刷新SMILES图片
+  const validateSmilesImage = async (smiles: string): Promise<string> => {
+    if (!smiles || smiles.trim() === '') {
+      return ''
+    }
+
+    if (!SmilesApiService.isValidSmiles(smiles)) {
+      console.warn('Invalid SMILES format:', smiles)
+      return ''
+    }
+
+    const imageUrl = SmilesApiService.getSmilesImageUrl(smiles)
+    const isValid = await SmilesApiService.preloadSmilesImage(smiles)
+    
+    return isValid ? imageUrl : ''
+  }
+
   // 关闭图片对话框
   const closeImageDialog = (): void => {
     showImageDialog.value = false
@@ -228,13 +263,6 @@ export function useTableData() {
     }
   }
 
-  // 处理图片错误
-  const handleImageError = (event: Event): void => {
-    const img = event.target as HTMLImageElement
-    console.warn('Failed to load SMILES image:', img.src)
-    img.style.display = 'none'
-  }
-
   return {
     // 响应式数据
     tableData,
@@ -260,6 +288,7 @@ export function useTableData() {
     showImageModal,
     closeImageDialog,
     downloadImage,
-    handleImageError
+    handleImageError,
+    validateSmilesImage
   }
 }

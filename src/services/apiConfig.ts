@@ -65,6 +65,11 @@ export const API_ENDPOINTS = {
     UPDATE: (id: string) => `/attachments/${id}`,
     DELETE: (id: string) => `/attachments/${id}`,
     BY_TABLE: (tablename: string) => `/attachments/by-table/${tablename}`,
+  },
+  
+  // SMILES相关
+  SMILES: {
+    TO_IMAGE: '/smiles/smiles2img',
   }
 }
 

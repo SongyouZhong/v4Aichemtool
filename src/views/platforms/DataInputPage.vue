@@ -27,14 +27,6 @@
                 title="Get SMILES from editor to input field"
               />
               <Button 
-                label="Set SMILES" 
-                size="small" 
-                severity="info"
-                @click="setSmilesFromInput"
-                class="control-btn"
-                title="Set SMILES from input field to editor"
-              />
-              <Button 
                 label="Clear" 
                 size="small" 
                 severity="secondary"
@@ -88,21 +80,41 @@
             </div>
           </div>
           
-          <!-- 第3行：2个输入框 -->
+          <!-- 第3行：SMILES输入框和Set SMILES按钮 -->
           <div class="input-row row-3">
-            <div class="input-item">
+            <div class="input-item smiles-input-container">
               <label for="input4">Compound SMILES:</label>
               <InputText v-model="inputs.compoundSmiles" id="input4" placeholder="Enter SMILES or use 'Get SMILES' button" />
-              <small class="field-help">Type SMILES (e.g., CCO for ethanol) then click "Set SMILES" button above</small>
+              <small class="field-help">Type SMILES (e.g., CCO for ethanol) then click "Set SMILES" button</small>
             </div>
-            <div class="input-item">
+            <div class="smiles-set-button">
+              <Button 
+                label="Set SMILES" 
+                size="small" 
+                severity="info"
+                @click="setSmilesFromInput"
+                class="control-btn set-smiles-btn"
+                title="Set SMILES from input field to editor"
+              />
+            </div>
+          </div>
+
+          <!-- 第4行：Compound Note -->
+          <div class="input-row row-4">
+            <div class="input-item note-input-container">
               <label for="input5">Compound Note:</label>
-              <InputText v-model="inputs.compoundNote" id="input5" placeholder="Enter compound note" />
+              <textarea 
+                v-model="inputs.compoundNote" 
+                id="input5" 
+                placeholder="Enter compound note or description..." 
+                class="compound-note-textarea"
+                rows="4"
+              />
             </div>
           </div>
           
-          <!-- 第4行：4个按钮 -->
-          <div class="input-row row-4">
+          <!-- 第5行：保存按钮 -->
+          <div class="input-row row-5">
             <Button label="Save" @click="handleSave" class="row-btn" />
           </div>
         
@@ -863,10 +875,93 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 
+.ketcher-controls {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
 .control-btn {
   min-width: 80px;
   font-size: 0.875rem;
   height: 2rem;
+}
+
+/* SMILES输入容器 */
+.smiles-input-container {
+  flex: 2;
+  min-width: 300px;
+}
+
+/* Set SMILES按钮容器 */
+.smiles-set-button {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  min-width: 120px;
+  padding-left: 1rem;
+}
+
+.set-smiles-btn {
+  min-width: 100px;
+  height: 2.5rem;
+}
+
+/* 备注输入容器 */
+.note-input-container {
+  width: 100%;
+}
+
+/* Compound Note 文本框样式 */
+.compound-note-textarea {
+  width: 100%;
+  min-height: 100px;
+  max-height: 200px;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+  background-color: #ffffff;
+  color: #495057;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #6c757d #f8f9fa;
+}
+
+.compound-note-textarea:focus {
+  outline: 0;
+  border-color: var(--p-primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.compound-note-textarea::placeholder {
+  color: #6c757d;
+  opacity: 1;
+}
+
+/* WebKit scrollbar styling */
+.compound-note-textarea::-webkit-scrollbar {
+  width: 8px;
+}
+
+.compound-note-textarea::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.compound-note-textarea::-webkit-scrollbar-thumb {
+  background: #6c757d;
+  border-radius: 4px;
+}
+
+.compound-note-textarea::-webkit-scrollbar-thumb:hover {
+  background: #495057;
 }
 
 .smiles-display {
@@ -939,36 +1034,32 @@ onMounted(() => {
   flex: 2;
 }
 
-.row-2, .row-3 {
+.row-2 {
   justify-content: space-between;
 }
 
-.row-2 .input-item, .row-3 .input-item {
+.row-2 .input-item {
   flex: 1;
   max-width: calc(50% - 0.5rem);
 }
 
-.row-4, .row-5, .row-6 {
+.row-3 {
+  align-items: flex-end;
+}
+
+.row-4 {
+  justify-content: center;
+}
+
+.row-5 {
   justify-content: center;
   flex-wrap: wrap;
 }
 
-.row-4 .row-btn {
+.row-5 .row-btn {
   flex: 1;
   min-width: 120px;
   max-width: 150px;
-}
-
-.row-5 .row-btn {
-  flex: 1;
-  min-width: 130px;
-  max-width: 160px;
-}
-
-.row-6 .row-btn {
-  flex: 1;
-  min-width: 150px;
-  max-width: 200px;
 }
 
 .bottom-section {
@@ -1438,6 +1529,35 @@ onMounted(() => {
     width: 100%;
     min-width: unset;
     max-width: unset;
+  }
+  
+  /* 移动端Ketcher控制按钮 */
+  .ketcher-controls {
+    flex-direction: row;
+    justify-content: center;
+    padding: 0;
+    margin-top: 1rem;
+  }
+  
+  .smiles-input-container {
+    min-width: unset;
+  }
+  
+  /* 移动端Set SMILES按钮 */
+  .smiles-set-button {
+    padding-left: 0;
+    justify-content: center;
+    margin-top: 1rem;
+  }
+  
+  .set-smiles-btn {
+    width: 100%;
+  }
+  
+  /* 移动端备注文本框 */
+  .compound-note-textarea {
+    min-height: 80px;
+    max-height: 150px;
   }
   
   .table-actions {

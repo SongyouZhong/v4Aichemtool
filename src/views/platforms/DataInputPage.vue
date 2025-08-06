@@ -104,23 +104,8 @@
           <!-- 第4行：4个按钮 -->
           <div class="input-row row-4">
             <Button label="Save" @click="handleSave" class="row-btn" />
-            <Button label="Validate" @click="handleValidate" class="row-btn" severity="info" />
-            <Button label="Calculate" @click="handleCalculate" class="row-btn" severity="success" />
-            <Button label="Reset" @click="handleReset" class="row-btn" severity="secondary" />
           </div>
-          
-          <!-- 第5行：3个按钮 -->
-          <div class="input-row row-5">
-            <Button label="Import" @click="handleImport" class="row-btn" />
-            <Button label="Export" @click="handleExport" class="row-btn" severity="info" />
-            <Button label="Preview" @click="handlePreview" class="row-btn" severity="success" />
-          </div>
-          
-          <!-- 第6行：2个按钮 -->
-          <div class="input-row row-6">
-            <Button label="Save All" @click="handleSaveAll" class="row-btn" />
-            <Button label="Clear All" @click="handleClearAll" class="row-btn" severity="danger" />
-          </div>
+        
         </div>
       </div>
       

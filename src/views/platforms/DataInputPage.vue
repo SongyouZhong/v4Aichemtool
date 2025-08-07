@@ -190,20 +190,21 @@
                 <!-- Batch 列 -->
                 <span v-else-if="col.field === 'batch'">{{ slotProps.data.batch ?? '-' }}</span>
                 
-                <!-- SMILES 列 -->
-                <span v-else-if="col.field === 'smiles'" class="smiles-text">{{ slotProps.data.smiles }}</span>
-                
-                <!-- SMILES Image 列 -->
-                <div v-else-if="col.field === 'smilesImage'" class="smiles-image-container">
-                  <img v-if="slotProps.data.smilesImage" 
-                       :src="slotProps.data.smilesImage" 
-                       :alt="'SMILES: ' + slotProps.data.smiles"
-                       class="smiles-image clickable-image"
-                       @error="handleImageError($event)"
-                       @click="showImageModal(slotProps.data)"
-                       :title="'Click to enlarge - ' + slotProps.data.name"
-                  />
-                  <span v-else class="no-image">No Image</span>
+                <!-- 合并的SMILES列：图像在上，SMILES文本在下 -->
+                <div v-else-if="col.field === 'smiles'" class="smiles-combined-container">
+                  <div class="smiles-image-section">
+                    <img v-if="slotProps.data.smilesImage" 
+                         :src="slotProps.data.smilesImage" 
+                         :alt="'SMILES: ' + slotProps.data.smiles"
+                         class="smiles-image"
+                         @error="handleImageError($event)"
+                         :title="'SMILES Structure - ' + slotProps.data.name"
+                    />
+                    <span v-else class="no-image">No Image</span>
+                  </div>
+                  <div class="smiles-text-section">
+                    <span class="smiles-text">{{ slotProps.data.smiles }}</span>
+                  </div>
                 </div>
                 
                 <!-- Description 列 -->
@@ -239,7 +240,7 @@
                     icon="pi pi-pencil" 
                     size="small" 
                     outlined
-                    @click="editRow(slotProps.data)"
+                    @click="editCompound(slotProps.data)"
                     v-tooltip.top="'Edit'"
                     class="action-btn edit-btn"
                   />
@@ -260,58 +261,195 @@
       </div>
     </div>
     
-    <!-- 图片放大对话框 -->
+    <!-- 化合物编辑对话框 -->
     <Dialog 
-      v-model:visible="showImageDialog" 
-      :header="selectedImage.name + ' - Molecular Structure'"
+      v-model:visible="showEditDialog" 
+      :header="'编辑化合物 - ' + (editingCompound.name || '')"
       :modal="true" 
       :closable="true"
       :draggable="false"
       :resizable="false"
-      class="image-dialog"
-      @hide="closeImageDialog"
+      class="edit-compound-dialog"
+      @hide="closeEditDialog"
     >
-      <div class="image-modal-content">
-        <div class="enlarged-image-container">
-          <img 
-            :src="selectedImage.src" 
-            :alt="'SMILES: ' + selectedImage.smiles"
-            class="enlarged-image"
-            @error="handleImageError($event)"
-          />
-        </div>
-        
-        <div class="image-details">
-          <div class="detail-row">
-            <label>Compound Name:</label>
-            <span class="detail-value">{{ selectedImage.name }}</span>
-          </div>
-          
-          <div class="detail-row">
-            <label>SMILES:</label>
-            <span class="detail-value smiles-code">{{ selectedImage.smiles }}</span>
-          </div>
-          
-          <div class="detail-row">
-            <label>Description:</label>
-            <span class="detail-value">{{ selectedImage.description }}</span>
+      <div class="edit-modal-content">
+        <!-- 分子结构图片显示 -->
+        <div class="compound-structure-section" v-if="editingCompound.smilesImage">
+          <h4>分子结构</h4>
+          <div class="structure-image-container">
+            <img 
+              :src="editingCompound.smilesImage" 
+              :alt="'SMILES: ' + editingCompound.smiles"
+              class="structure-image"
+              @error="handleImageError($event)"
+            />
           </div>
         </div>
         
-        <div class="modal-actions">
+        <!-- 可编辑的化合物属性 -->
+        <div class="compound-edit-form">
+          <h4>化合物信息</h4>
+          
+          <div class="edit-field">
+            <label for="edit-name">化合物名称 *:</label>
+            <InputText 
+              id="edit-name"
+              v-model="editingCompound.name" 
+              placeholder="请输入化合物名称"
+              class="edit-input"
+            />
+          </div>
+          
+          <div class="edit-field">
+            <label for="edit-batch">批次:</label>
+            <InputText 
+              id="edit-batch"
+              v-model="editingCompound.batch" 
+              placeholder="请输入批次号"
+              class="edit-input"
+            />
+          </div>
+          
+          <div class="edit-field">
+            <label for="edit-smiles">SMILES分子式</label>
+            <InputText 
+              id="edit-smiles"
+              v-model="editingCompound.smiles" 
+              placeholder="请输入SMILES"
+              class="edit-input smiles-input"
+            />
+          </div>
+          
+          <div class="edit-field">
+            <label for="edit-description">描述:</label>
+            <textarea 
+              id="edit-description"
+              v-model="editingCompound.description" 
+              placeholder="请输入化合物描述"
+              class="edit-textarea"
+              rows="3"
+            />
+          </div>
+          
+          <div class="edit-field">
+            <label for="edit-priority">合成优先级:</label>
+            <Dropdown 
+              id="edit-priority"
+              v-model="editingCompound.synthetic_priority" 
+              :options="syntheticPriorityOptions" 
+              optionLabel="label" 
+              optionValue="value"
+              placeholder="选择优先级"
+              class="edit-dropdown"
+            />
+          </div>
+          
+          <!-- 只读信息显示 -->
+          <div class="readonly-info">
+            <h4>其他信息（只读）</h4>
+            
+            <div class="readonly-field">
+              <label>创建时间:</label>
+              <span>{{ editingCompound.create_time ? new Date(editingCompound.create_time).toLocaleString() : '-' }}</span>
+            </div>
+            
+            <div class="readonly-field">
+              <label>创建者:</label>
+              <span>{{ editingCompound.creator_id || '-' }}</span>
+            </div>
+            
+            <div class="readonly-field">
+              <label>项目ID:</label>
+              <span>{{ editingCompound.project_id || '-' }}</span>
+            </div>
+            
+            <div class="readonly-field">
+              <label>化合物ID:</label>
+              <span>{{ editingCompound.id || '-' }}</span>
+            </div>
+            
+            <div class="readonly-field" v-if="editingCompound.attachments">
+              <label>附件:</label>
+              <span>{{ editingCompound.attachments.length || 0 }} 个文件</span>
+            </div>
+          </div>
+        </div>
+        
+        <div class="edit-modal-actions">
           <Button 
-            label="Download Image" 
-            icon="pi pi-download"
-            @click="downloadImage"
-            class="download-btn"
-            size="small"
+            label="保存修改" 
+            icon="pi pi-check"
+            @click="saveCompoundChanges"
+            class="save-changes-btn"
+            :loading="saveLoading"
           />
           <Button 
-            label="Close" 
+            label="取消" 
             icon="pi pi-times"
-            @click="closeImageDialog"
+            @click="closeEditDialog"
             severity="secondary"
-            size="small"
+            :disabled="saveLoading"
+          />
+        </div>
+      </div>
+    </Dialog>
+
+    <!-- 编辑确认对话框 -->
+    <Dialog 
+      v-model:visible="showEditConfirmDialog" 
+      header="确认保存修改"
+      :modal="true" 
+      :closable="true"
+      :draggable="false"
+      :resizable="false"
+      class="edit-confirm-dialog"
+      @hide="closeEditConfirmDialog"
+    >
+      <div class="edit-confirm-content">
+        <div class="confirmation-message">
+          <i class="pi pi-question-circle question-icon"></i>
+          <div class="message-text">
+            <h4>确认保存化合物修改</h4>
+            <p>您即将保存对化合物的修改，确定要继续吗？</p>
+            <div class="compound-summary">
+              <div class="summary-row">
+                <label>化合物名称:</label>
+                <span>{{ editingCompound.name || '未设置' }}</span>
+              </div>
+              <div class="summary-row">
+                <label>批次:</label>
+                <span>{{ editingCompound.batch || '未设置' }}</span>
+              </div>
+              <div class="summary-row">
+                <label>SMILES:</label>
+                <span class="smiles-value">{{ editingCompound.smiles || '未设置' }}</span>
+              </div>
+              <div class="summary-row">
+                <label>描述:</label>
+                <span>{{ editingCompound.description || '未设置' }}</span>
+              </div>
+              <div class="summary-row">
+                <label>合成优先级:</label>
+                <span>{{ getPriorityLabel(editingCompound.synthetic_priority) }}</span>
+              </div>
+            </div>
+            <p class="confirm-text">保存后修改将立即生效。</p>
+          </div>
+        </div>
+        
+        <div class="dialog-actions">
+          <Button 
+            label="取消" 
+            icon="pi pi-times" 
+            severity="secondary"
+            @click="closeEditConfirmDialog"
+            :disabled="saveLoading"
+          />
+          <Button 
+            label="确认保存" 
+            icon="pi pi-check" 
+            @click="confirmSaveChanges"
+            :loading="saveLoading"
           />
         </div>
       </div>
@@ -681,6 +819,11 @@ const similarityError = ref('');
 // Column Selector相关
 const showColumnDialog = ref(false);
 
+// 化合物编辑对话框相关
+const showEditDialog = ref(false);
+const editingCompound = ref<any>({});
+const showEditConfirmDialog = ref(false);
+
 // 定义可用的列配置
 interface ColumnConfig {
   field: string;
@@ -695,8 +838,7 @@ interface ColumnConfig {
 const availableColumns = ref<ColumnConfig[]>([
   { field: 'name', header: '化合物名称', style: 'min-width: 150px', visible: true, required: true },
   { field: 'batch', header: '批次', style: 'min-width: 120px', visible: true, required: false },
-  { field: 'smiles', header: 'SMILES', style: 'min-width: 200px', visible: true, required: false },
-  { field: 'smilesImage', header: 'SMILES图像', style: 'min-width: 150px', visible: true, required: false },
+  { field: 'smiles', header: 'SMILES结构', style: 'min-width: 250px', visible: true, required: false },
   { field: 'description', header: '描述', style: 'min-width: 200px', visible: true, required: false },
   { field: 'synthetic_priority', header: '合成优先级', style: 'min-width: 120px', visible: true, required: false },
   { field: 'attachments', header: '附件', style: 'min-width: 150px', visible: true, required: false },
@@ -711,7 +853,6 @@ const defaultColumnSettings = [
   { field: 'name', visible: true },
   { field: 'batch', visible: true },
   { field: 'smiles', visible: true },
-  { field: 'smilesImage', visible: true },
   { field: 'description', visible: true },
   { field: 'synthetic_priority', visible: true },
   { field: 'attachments', visible: true },
@@ -1104,6 +1245,92 @@ const loadColumnSettings = () => {
     }
   } catch (error) {
     console.error('加载列设置失败:', error);
+  }
+};
+
+// 化合物编辑相关方法
+const editCompound = (compound: any) => {
+  console.log('编辑化合物原始数据:', compound);
+  console.log('SMILES字段值:', compound.smiles);
+  console.log('所有字段名:', Object.keys(compound));
+  
+  // 深拷贝化合物数据以避免直接修改原始数据
+  editingCompound.value = {
+    id: compound.id,
+    name: compound.name || '',
+    batch: compound.batch || '',
+    smiles: compound.smiles || '',
+    description: compound.description || '',
+    synthetic_priority: compound.synthetic_priority || null,
+    smilesImage: compound.smilesImage || '',
+    create_time: compound.create_time,
+    creator_id: compound.creator_id,
+    project_id: compound.project_id,
+    attachments: compound.attachments || []
+  };
+  
+  showEditDialog.value = true;
+};
+
+const closeEditDialog = () => {
+  showEditDialog.value = false;
+  editingCompound.value = {};
+};
+
+const saveCompoundChanges = () => {
+  // 验证必要字段
+  if (!editingCompound.value.name?.trim()) {
+    alert('化合物名称不能为空');
+    return;
+  }
+  
+  if (!editingCompound.value.smiles?.trim()) {
+    alert('SMILES不能为空');
+    return;
+  }
+  
+  // 显示确认对话框
+  showEditConfirmDialog.value = true;
+};
+
+const closeEditConfirmDialog = () => {
+  showEditConfirmDialog.value = false;
+};
+
+const confirmSaveChanges = async () => {
+  console.log('确认保存化合物修改');
+  saveLoading.value = true;
+  
+  try {
+    // 准备更新数据
+    const updateData = {
+      name: editingCompound.value.name.trim(),
+      batch: editingCompound.value.batch ? parseInt(editingCompound.value.batch) : undefined,
+      smiles: editingCompound.value.smiles.trim(),
+      description: editingCompound.value.description?.trim() || undefined,
+      synthetic_priority: editingCompound.value.synthetic_priority || undefined
+    };
+    
+    console.log('更新化合物数据:', updateData);
+    
+    // 调用API更新化合物
+    const updatedCompound = await CompoundApiService.updateCompound(editingCompound.value.id, updateData);
+    
+    console.log('化合物更新成功:', updatedCompound);
+    alert(`化合物 "${updatedCompound.name}" 更新成功！`);
+    
+    // 关闭对话框
+    closeEditConfirmDialog();
+    closeEditDialog();
+    
+    // 刷新表格数据
+    await loadTableData(1, 10, selectedProject.value?.id);
+    
+  } catch (error) {
+    console.error('更新化合物失败:', error);
+    alert('更新化合物失败，请稍后重试。');
+  } finally {
+    saveLoading.value = false;
   }
 };
 
@@ -1603,80 +1830,226 @@ onMounted(() => {
   width: auto;
 }
 
-/* 图片放大对话框样式 */
-.image-dialog {
+/* 合并的SMILES列样式 */
+.smiles-combined-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 200px;
+  padding: 0.5rem;
+}
+
+.smiles-image-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 60px;
+  width: 100%;
+}
+
+.smiles-image-section .smiles-image {
+  max-width: 120px;
+  max-height: 60px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+}
+
+.smiles-image-section .no-image {
+  color: #666;
+  font-style: italic;
+  font-size: 0.8rem;
+}
+
+.smiles-text-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 30px;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+}
+
+.smiles-text-section .smiles-text {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.75rem;
+  word-break: break-all;
+  text-align: center;
+  color: #495057;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 化合物编辑对话框样式 */
+.edit-compound-dialog {
   max-width: 90vw;
   max-height: 90vh;
 }
 
-.image-modal-content {
+.edit-modal-content {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  min-width: 500px;
+  min-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 
-.enlarged-image-container {
+.compound-structure-section {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.compound-structure-section h4 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1.1rem;
+  text-align: center;
+}
+
+.structure-image-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  background: #f8f9fa;
+  min-height: 200px;
+  background: white;
   border: 1px solid #dee2e6;
-  border-radius: 8px;
+  border-radius: 6px;
   padding: 1rem;
-  min-height: 300px;
 }
 
-.enlarged-image {
+.structure-image {
   max-width: 100%;
-  max-height: 400px;
+  max-height: 300px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.image-details {
+.compound-edit-form {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  background: #f8f9fa;
-  padding: 1rem;
-  border-radius: 6px;
-  border: 1px solid #e9ecef;
-}
-
-.detail-row {
-  display: flex;
-  align-items: flex-start;
   gap: 1rem;
 }
 
-.detail-row label {
+.compound-edit-form h4 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1.1rem;
+  border-bottom: 2px solid #e9ecef;
+  padding-bottom: 0.5rem;
+}
+
+.edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.edit-field label {
   font-weight: 600;
   color: #495057;
-  min-width: 120px;
   font-size: 0.9rem;
 }
 
-.detail-value {
-  flex: 1;
-  color: #212529;
+.edit-input,
+.edit-dropdown {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
   font-size: 0.9rem;
-  line-height: 1.4;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
 
-.smiles-code {
+.edit-input:focus,
+.edit-dropdown:focus {
+  outline: 0;
+  border-color: var(--p-primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.edit-input.smiles-input {
   font-family: 'Courier New', Courier, monospace;
-  background: #ffffff;
-  padding: 0.5rem;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  word-break: break-all;
   font-size: 0.85rem;
 }
 
-.modal-actions {
+.edit-textarea {
+  width: 100%;
+  min-height: 80px;
+  max-height: 150px;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  resize: vertical;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.edit-textarea:focus {
+  outline: 0;
+  border-color: var(--p-primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.readonly-info {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.readonly-info h4 {
+  margin: 0 0 1rem 0;
+  color: #6c757d;
+  font-size: 1rem;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+}
+
+.readonly-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.readonly-field:last-child {
+  margin-bottom: 0;
+  border-bottom: none;
+}
+
+.readonly-field label {
+  font-weight: 600;
+  color: #6c757d;
+  font-size: 0.85rem;
+  min-width: 100px;
+}
+
+.readonly-field span {
+  color: #495057;
+  font-size: 0.85rem;
+  text-align: right;
+  word-break: break-word;
+  max-width: 60%;
+}
+
+.edit-modal-actions {
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
@@ -1684,8 +2057,20 @@ onMounted(() => {
   border-top: 1px solid #e9ecef;
 }
 
-.download-btn {
+.save-changes-btn {
   min-width: 140px;
+}
+
+/* 编辑确认对话框样式 */
+.edit-confirm-dialog {
+  max-width: 600px;
+}
+
+.edit-confirm-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 500px;
 }
 
 /* 项目管理对话框样式 */

@@ -6,7 +6,7 @@ const HomePage = () => import('@/views/HomePage.vue')
 const LoginPage = () => import('@/views/LoginPage.vue')
 const SmallMoleculePage = () => import('@/views/platforms/SmallMoleculePage.vue')
 const ProteinPage = () => import('@/views/platforms/ProteinPage.vue')
-const DataInputPage = () => import('@/views/platforms/DataInputPage.vue')
+const DataInputPage = () => import('@/views/platforms/MolInputPage.vue')
 
 const routes = [
   {

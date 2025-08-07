@@ -91,8 +91,15 @@ const smallMoleculeTools = ref<SmallMoleculeTool[]>([
     type: 'interactive-design'
   },
   {
-    title: 'Data Input Platform',
+    title: '化合物录入平台',
     category: 'Data Management/Input/Analysis',
+    description: 'Comprehensive data input and management platform for chemical and molecular data. Features customizable input forms and structured data tables for efficient data organization.',
+    buttonText: 'Access Platform',
+    type: 'data-input'
+  },
+  {
+    title: '合成录入平台',
+    category: '合成结果数据录入',
     description: 'Comprehensive data input and management platform for chemical and molecular data. Features customizable input forms and structured data tables for efficient data organization.',
     buttonText: 'Access Platform',
     type: 'data-input'

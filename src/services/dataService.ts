@@ -7,92 +7,84 @@ import type {
   ProjectData, 
   InputFormData 
 } from '@/types'
-import { 
-  sampleTableData, 
-  mainParameterOptions, 
-  projectTableData,
-  defaultInputData,
-  sampleInputData 
-} from '@/data/mockData'
+
+// 默认输入数据定义
+const defaultInputData: InputFormData = {
+  mainParameter: null,
+  compoundName: '',
+  compoundBatch: '',
+  compoundSmiles: '',
+  compoundNote: '',
+  syntheticPriority: null
+}
+
+// 示例输入数据定义
+const sampleInputData: InputFormData = {
+  mainParameter: 'project_alpha',
+  compoundName: 'Sample Compound A',
+  compoundBatch: 'BATCH-2024-001',
+  compoundSmiles: 'CCO',
+  compoundNote: 'Test compound for demonstration',
+  syntheticPriority: 2
+}
+
+// 主参数选项定义
+const mainParameterOptions: MainParameterOption[] = [
+  { label: 'Project Alpha', value: 'project_alpha' },
+  { label: 'Project Beta', value: 'project_beta' },
+  { label: 'Project Gamma', value: 'project_gamma' }
+]
+
+// 项目表格数据定义
+const projectTableData: ProjectData[][] = [
+  [
+    { label: 'Project Name', value: 'Project Alpha' },
+    { label: 'Project Description', value: 'Research and development project for new compounds' }
+  ],
+  [
+    { label: 'Project Name', value: 'Project Beta' },
+    { label: 'Project Description', value: 'Production optimization and quality improvement' }
+  ]
+]
 
 // 表格数据服务
 export class TableDataService {
-  // 获取表格数据
+  // 获取表格数据 - 现在返回空数组，实际数据从API获取
   static async getTableData(): Promise<TableRow[]> {
     // 模拟API延迟
     await new Promise(resolve => setTimeout(resolve, 100))
-    return [...sampleTableData]
+    return []
   }
 
-  // 添加新行
+  // 添加新行 - 简化实现
   static async addTableRow(row: Omit<TableRow, 'id'>): Promise<TableRow> {
     await new Promise(resolve => setTimeout(resolve, 50))
-    const newId = Math.max(...sampleTableData.map(r => r.id), 0) + 1
-    const newRow: TableRow = { ...row, id: newId }
-    sampleTableData.push(newRow)
+    const newRow: TableRow = { ...row, id: `temp_${Date.now()}` }
     return newRow
   }
 
-  // 更新行数据
-  static async updateTableRow(id: number, updates: Partial<TableRow>): Promise<TableRow | null> {
+  // 更新行数据 - 简化实现
+  static async updateTableRow(id: string, updates: Partial<TableRow>): Promise<TableRow | null> {
     await new Promise(resolve => setTimeout(resolve, 50))
-    const index = sampleTableData.findIndex(row => row.id === id)
-    if (index === -1) return null
-    
-    sampleTableData[index] = { ...sampleTableData[index], ...updates }
-    return sampleTableData[index]
+    return null // 实际实现中应该调用API
   }
 
-  // 删除行数据
-  static async deleteTableRow(id: number): Promise<boolean> {
+  // 删除行数据 - 简化实现
+  static async deleteTableRow(id: string): Promise<boolean> {
     await new Promise(resolve => setTimeout(resolve, 50))
-    const index = sampleTableData.findIndex(row => row.id === id)
-    if (index === -1) return false
-    
-    sampleTableData.splice(index, 1)
-    return true
+    return false // 实际实现中应该调用API
   }
 
-  // 清空表格
+  // 清空表格 - 简化实现
   static async clearTable(): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 50))
-    sampleTableData.length = 0
+    // 实际实现中应该调用API
   }
 
-  // 重新加载示例数据
+  // 重新加载示例数据 - 现在返回空数组
   static async loadSampleData(): Promise<TableRow[]> {
     await new Promise(resolve => setTimeout(resolve, 100))
-    sampleTableData.length = 0
-    sampleTableData.push(...[
-      {
-        id: 1,
-        name: 'Caffeine',
-        batch: 'CHM-2024-001',
-        smiles: 'CN1C=NC2=C1C(=O)N(C(=O)N2C)C',
-        smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CN1C%3DNC2%3DC1C(%3DO)N(C(%3DO)N2C)C/PNG',
-        description: 'Central nervous system stimulant, commonly found in coffee and tea',
-        attachments: ['caffeine_analysis.pdf', 'nmr_data.xlsx', 'purity_report.doc']
-      },
-      {
-        id: 2,
-        name: 'Aspirin',
-        batch: 'PHM-2024-002',
-        smiles: 'CC(=O)OC1=CC=CC=C1C(=O)O',
-        smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CC(%3DO)OC1%3DCC%3DCC%3DC1C(%3DO)O/PNG',
-        description: 'Nonsteroidal anti-inflammatory drug (NSAID) used for pain relief',
-        attachments: ['aspirin_synthesis.pdf', 'quality_control.xlsx']
-      },
-      {
-        id: 3,
-        name: 'Ethanol',
-        batch: 'SOL-2024-006',
-        smiles: 'CCO',
-        smilesImage: 'https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/CCO/PNG',
-        description: 'Common alcohol used as solvent and in pharmaceutical preparations',
-        attachments: ['ethanol_purity.pdf']
-      }
-    ])
-    return [...sampleTableData]
+    return []
   }
 }
 
@@ -151,6 +143,10 @@ export class FormDataService {
     
     if (data.compoundSmiles && !this.isValidSmiles(data.compoundSmiles)) {
       errors.push('Invalid SMILES format')
+    }
+    
+    if (data.syntheticPriority && (data.syntheticPriority < 1 || data.syntheticPriority > 3)) {
+      errors.push('Synthetic priority must be between 1 and 3')
     }
     
     return errors

@@ -10,7 +10,7 @@ export interface TableRow {
   description: string;
   patent_issue?: string;
   patent_comment?: string;
-  synthetic_priority?: string;
+  synthetic_priority?: number;
   create_time: string;
   creator_id?: string;
   project_id?: string; // 添加项目ID
@@ -60,7 +60,7 @@ export interface Compound {
   description?: string;
   patent_issue?: string;
   patent_comment?: string;
-  synthetic_priority?: string;
+  synthetic_priority?: number;
   create_time: string;
   creator_id?: string;
   project_id?: string; // 添加项目ID
@@ -74,7 +74,7 @@ export interface CompoundCreate {
   description?: string;
   patent_issue?: string;
   patent_comment?: string;
-  synthetic_priority?: string;
+  synthetic_priority?: number;
   creator_id?: string;
   project_id?: string; // 添加项目ID
 }
@@ -95,6 +95,7 @@ export interface InputFormData {
   compoundBatch: string;
   compoundSmiles: string;
   compoundNote: string;
+  syntheticPriority: number | null;
 }
 
 // 图片对话框数据类型

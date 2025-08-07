@@ -48,7 +48,7 @@
         
         <!-- 右边输入框区域 -->
         <div class="right-inputs">
-          <h3>Input Parameters</h3>
+          <h3>化合物信息</h3>
           
           <!-- 第1行：1个下拉框 + 1个按钮 -->
         <div class="input-row row-1">
@@ -113,8 +113,24 @@
             </div>
           </div>
           
-          <!-- 第5行：保存按钮 -->
+          <!-- 第5行：合成优先级 -->
           <div class="input-row row-5">
+            <div class="input-item">
+              <label for="synthetic-priority">Synthetic Priority:</label>
+              <Dropdown 
+                v-model="inputs.syntheticPriority" 
+                id="synthetic-priority"
+                :options="syntheticPriorityOptions" 
+                optionLabel="label" 
+                optionValue="value"
+                placeholder="Select priority level"
+                class="w-full"
+              />
+            </div>
+          </div>
+          
+          <!-- 第6行：保存按钮 -->
+          <div class="input-row row-6">
             <Button label="Save" @click="handleSave" class="row-btn" />
           </div>
         
@@ -192,6 +208,11 @@
                 
                 <!-- Description 列 -->
                 <span v-else-if="col.field === 'description'">{{ slotProps.data.description }}</span>
+                
+                <!-- Synthetic Priority 列 -->
+                <span v-else-if="col.field === 'synthetic_priority'" class="priority-cell">
+                  {{ getPriorityLabel(slotProps.data.synthetic_priority) }}
+                </span>
                 
                 <!-- Attachments 列 -->
                 <div v-else-if="col.field === 'attachments'" class="attachments-cell">
@@ -677,6 +698,7 @@ const availableColumns = ref<ColumnConfig[]>([
   { field: 'smiles', header: 'SMILES', style: 'min-width: 200px', visible: true, required: false },
   { field: 'smilesImage', header: 'SMILES图像', style: 'min-width: 150px', visible: true, required: false },
   { field: 'description', header: '描述', style: 'min-width: 200px', visible: true, required: false },
+  { field: 'synthetic_priority', header: '合成优先级', style: 'min-width: 120px', visible: true, required: false },
   { field: 'attachments', header: '附件', style: 'min-width: 150px', visible: true, required: false },
   { field: 'create_time', header: '创建时间', style: 'min-width: 140px', visible: false, required: false },
   { field: 'creator_id', header: '创建者', style: 'min-width: 120px', visible: false, required: false },
@@ -691,6 +713,7 @@ const defaultColumnSettings = [
   { field: 'smiles', visible: true },
   { field: 'smilesImage', visible: true },
   { field: 'description', visible: true },
+  { field: 'synthetic_priority', visible: true },
   { field: 'attachments', visible: true },
   { field: 'create_time', visible: false },
   { field: 'creator_id', visible: false },
@@ -702,6 +725,20 @@ const defaultColumnSettings = [
 const visibleColumns = computed(() => {
   return availableColumns.value.filter(col => col.visible);
 });
+
+// 合成优先级选项
+const syntheticPriorityOptions = ref([
+  { label: '高 (High)', value: 3 },
+  { label: '中 (Medium)', value: 2 },
+  { label: '低 (Low)', value: 1 }
+]);
+
+// 获取优先级显示文本的辅助函数
+const getPriorityLabel = (priority: number | null | undefined) => {
+  if (priority === null || priority === undefined) return '-';
+  const option = syntheticPriorityOptions.value.find(opt => opt.value === priority);
+  return option ? option.label : `${priority}`;
+};
 
 // 计算属性：验证过滤器是否有效
 const isFilterValid = computed(() => {
@@ -855,6 +892,7 @@ const confirmSaveCompound = async () => {
       batch: inputs.value.compoundBatch ? parseInt(inputs.value.compoundBatch) : undefined,
       smiles: inputs.value.compoundSmiles.trim(),
       description: inputs.value.compoundNote.trim() || undefined,
+      synthetic_priority: inputs.value.syntheticPriority || undefined,
       creator_id: 'current_user', // 这里应该从认证系统获取当前用户ID
       project_id: selectedProject.value?.id // 关联到当前选中的项目
     };
@@ -1515,6 +1553,14 @@ onMounted(() => {
   text-align: center;
   color: #666;
   font-size: 0.9rem;
+}
+
+.priority-cell {
+  text-align: center;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
 }
 
 .action-buttons {

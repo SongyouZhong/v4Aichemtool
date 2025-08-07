@@ -125,13 +125,23 @@
       <div class="bottom-section">
         <div class="table-header">
           <h3>化合物列表</h3>
-          <Button 
-            label="Filter" 
-            icon="pi pi-filter" 
-            severity="secondary"
-            @click="openFilterDrawer"
-            class="filter-btn"
-          />
+          <div class="header-actions">
+            <Button 
+              label="Columns" 
+              icon="pi pi-th-large" 
+              severity="secondary"
+              @click="openColumnSelector"
+              class="column-btn"
+              v-tooltip.top="'选择显示列'"
+            />
+            <Button 
+              label="Filter" 
+              icon="pi pi-filter" 
+              severity="secondary"
+              @click="openFilterDrawer"
+              class="filter-btn"
+            />
+          </div>
         </div>
         <div class="table-container">
           <DataTable 
@@ -147,27 +157,28 @@
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
           >
-            <Column field="name" header="Name" style="min-width: 150px">
+            <!-- 动态生成列 -->
+            <Column 
+              v-for="col in visibleColumns" 
+              :key="col.field" 
+              :field="col.field" 
+              :header="col.header" 
+              :style="col.style"
+              :frozen="col.frozen"
+              :alignFrozen="col.alignFrozen"
+            >
               <template #body="slotProps">
-                <span>{{ slotProps.data.name }}</span>
-              </template>
-            </Column>
-            
-            <Column field="batch" header="Batch" style="min-width: 120px">
-              <template #body="slotProps">
-                <span>{{ slotProps.data.batch ?? '-' }}</span>
-              </template>
-            </Column>
-            
-            <Column field="smiles" header="SMILES" style="min-width: 200px">
-              <template #body="slotProps">
-                <span class="smiles-text">{{ slotProps.data.smiles }}</span>
-              </template>
-            </Column>
-            
-            <Column field="smilesImage" header="SMILES Image" style="min-width: 150px">
-              <template #body="slotProps">
-                <div class="smiles-image-container">
+                <!-- Name 列 -->
+                <span v-if="col.field === 'name'">{{ slotProps.data.name }}</span>
+                
+                <!-- Batch 列 -->
+                <span v-else-if="col.field === 'batch'">{{ slotProps.data.batch ?? '-' }}</span>
+                
+                <!-- SMILES 列 -->
+                <span v-else-if="col.field === 'smiles'" class="smiles-text">{{ slotProps.data.smiles }}</span>
+                
+                <!-- SMILES Image 列 -->
+                <div v-else-if="col.field === 'smilesImage'" class="smiles-image-container">
                   <img v-if="slotProps.data.smilesImage" 
                        :src="slotProps.data.smilesImage" 
                        :alt="'SMILES: ' + slotProps.data.smiles"
@@ -178,29 +189,31 @@
                   />
                   <span v-else class="no-image">No Image</span>
                 </div>
-              </template>
-            </Column>
-            
-            <Column field="description" header="Description" style="min-width: 200px">
-              <template #body="slotProps">
-                <span>{{ slotProps.data.description }}</span>
-              </template>
-            </Column>
-            
-            <Column field="attachments" header="Attachments" style="min-width: 150px">
-              <template #body="slotProps">
-                <div class="attachments-cell">
+                
+                <!-- Description 列 -->
+                <span v-else-if="col.field === 'description'">{{ slotProps.data.description }}</span>
+                
+                <!-- Attachments 列 -->
+                <div v-else-if="col.field === 'attachments'" class="attachments-cell">
                   <span v-if="slotProps.data.attachments && slotProps.data.attachments.length > 0">
                     {{ slotProps.data.attachments.length }} file(s)
                   </span>
                   <span v-else>-</span>
                 </div>
-              </template>
-            </Column>
-            
-            <Column header="Action" style="min-width: 150px" :frozen="true" alignFrozen="right">
-              <template #body="slotProps">
-                <div class="action-buttons">
+                
+                <!-- Create Time 列 -->
+                <span v-else-if="col.field === 'create_time'">
+                  {{ slotProps.data.create_time ? new Date(slotProps.data.create_time).toLocaleDateString() : '-' }}
+                </span>
+                
+                <!-- Creator 列 -->
+                <span v-else-if="col.field === 'creator_id'">{{ slotProps.data.creator_id || '-' }}</span>
+                
+                <!-- Project ID 列 -->
+                <span v-else-if="col.field === 'project_id'">{{ slotProps.data.project_id || '-' }}</span>
+                
+                <!-- Action 列 -->
+                <div v-else-if="col.field === 'action'" class="action-buttons">
                   <Button 
                     icon="pi pi-pencil" 
                     size="small" 
@@ -464,6 +477,74 @@
         </div>
       </div>
     </Drawer>
+    
+    <!-- Column Selector Dialog -->
+    <Dialog 
+      v-model:visible="showColumnDialog" 
+      header="选择显示列"
+      :modal="true" 
+      :closable="true"
+      :draggable="false"
+      :resizable="false"
+      class="column-dialog"
+      @hide="closeColumnDialog"
+    >
+      <div class="column-content">
+        <div class="column-description">
+          <p>选择您希望在表格中显示的列：</p>
+        </div>
+        
+        <div class="column-options">
+          <div 
+            v-for="column in availableColumns" 
+            :key="column.field"
+            class="column-option"
+          >
+            <label class="column-checkbox">
+              <input 
+                type="checkbox" 
+                :checked="column.visible"
+                @change="toggleColumn(column.field)"
+                :disabled="column.required"
+              />
+              <span class="checkmark"></span>
+              <span class="column-label">{{ column.header }}</span>
+              <span v-if="column.required" class="required-badge">必需</span>
+            </label>
+          </div>
+        </div>
+        
+        <div class="column-actions">
+          <Button 
+            label="全选" 
+            icon="pi pi-check-square"
+            severity="secondary"
+            @click="selectAllColumns"
+            class="select-all-btn"
+          />
+          <Button 
+            label="重置为默认" 
+            icon="pi pi-refresh"
+            severity="secondary"
+            @click="resetToDefault"
+            class="reset-btn"
+          />
+          <Button 
+            label="应用" 
+            icon="pi pi-check"
+            @click="applyColumnChanges"
+            class="apply-btn"
+          />
+          <Button 
+            label="取消" 
+            icon="pi pi-times"
+            severity="secondary"
+            @click="closeColumnDialog"
+            class="cancel-btn"
+          />
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -575,6 +656,52 @@ const filterOptions = ref({
   similarity: ''
 });
 const similarityError = ref('');
+
+// Column Selector相关
+const showColumnDialog = ref(false);
+
+// 定义可用的列配置
+interface ColumnConfig {
+  field: string;
+  header: string;
+  style: string;
+  visible: boolean;
+  required: boolean;
+  frozen?: boolean;
+  alignFrozen?: string;
+}
+
+const availableColumns = ref<ColumnConfig[]>([
+  { field: 'name', header: '化合物名称', style: 'min-width: 150px', visible: true, required: true },
+  { field: 'batch', header: '批次', style: 'min-width: 120px', visible: true, required: false },
+  { field: 'smiles', header: 'SMILES', style: 'min-width: 200px', visible: true, required: false },
+  { field: 'smilesImage', header: 'SMILES图像', style: 'min-width: 150px', visible: true, required: false },
+  { field: 'description', header: '描述', style: 'min-width: 200px', visible: true, required: false },
+  { field: 'attachments', header: '附件', style: 'min-width: 150px', visible: true, required: false },
+  { field: 'create_time', header: '创建时间', style: 'min-width: 140px', visible: false, required: false },
+  { field: 'creator_id', header: '创建者', style: 'min-width: 120px', visible: false, required: false },
+  { field: 'project_id', header: '项目ID', style: 'min-width: 120px', visible: false, required: false },
+  { field: 'action', header: '操作', style: 'min-width: 150px', visible: true, required: true, frozen: true, alignFrozen: 'right' }
+]);
+
+// 默认列配置（用于重置）
+const defaultColumnSettings = [
+  { field: 'name', visible: true },
+  { field: 'batch', visible: true },
+  { field: 'smiles', visible: true },
+  { field: 'smilesImage', visible: true },
+  { field: 'description', visible: true },
+  { field: 'attachments', visible: true },
+  { field: 'create_time', visible: false },
+  { field: 'creator_id', visible: false },
+  { field: 'project_id', visible: false },
+  { field: 'action', visible: true }
+];
+
+// 计算属性：当前可见的列
+const visibleColumns = computed(() => {
+  return availableColumns.value.filter(col => col.visible);
+});
 
 // 计算属性：验证过滤器是否有效
 const isFilterValid = computed(() => {
@@ -870,6 +997,78 @@ const clearFilter = async () => {
   alert('过滤器已清除');
 };
 
+// Column Selector相关方法
+const openColumnSelector = () => {
+  showColumnDialog.value = true;
+};
+
+const closeColumnDialog = () => {
+  showColumnDialog.value = false;
+};
+
+const toggleColumn = (field: string) => {
+  const column = availableColumns.value.find(col => col.field === field);
+  if (column && !column.required) {
+    column.visible = !column.visible;
+  }
+};
+
+const selectAllColumns = () => {
+  availableColumns.value.forEach(column => {
+    if (!column.required) {
+      column.visible = true;
+    }
+  });
+};
+
+const resetToDefault = () => {
+  defaultColumnSettings.forEach(defaultCol => {
+    const column = availableColumns.value.find(col => col.field === defaultCol.field);
+    if (column) {
+      column.visible = defaultCol.visible;
+    }
+  });
+};
+
+const applyColumnChanges = () => {
+  console.log('应用列设置变更');
+  
+  // 这里可以添加保存用户偏好设置到localStorage的逻辑
+  const columnSettings = availableColumns.value.map(col => ({
+    field: col.field,
+    visible: col.visible
+  }));
+  
+  try {
+    localStorage.setItem('tableColumnSettings', JSON.stringify(columnSettings));
+    console.log('列设置已保存到localStorage');
+  } catch (error) {
+    console.error('保存列设置失败:', error);
+  }
+  
+  closeColumnDialog();
+  alert('列设置已应用');
+};
+
+// 从localStorage加载列设置
+const loadColumnSettings = () => {
+  try {
+    const savedSettings = localStorage.getItem('tableColumnSettings');
+    if (savedSettings) {
+      const settings = JSON.parse(savedSettings);
+      settings.forEach((setting: { field: string; visible: boolean }) => {
+        const column = availableColumns.value.find(col => col.field === setting.field);
+        if (column) {
+          column.visible = setting.visible;
+        }
+      });
+      console.log('从localStorage加载列设置');
+    }
+  } catch (error) {
+    console.error('加载列设置失败:', error);
+  }
+};
+
 // SMILES 同步方法
 const getSmilesAndSync = async () => {
   const smiles = await getSmiles();
@@ -936,6 +1135,9 @@ const saveData = async () => {
 
 // 初始化
 const initialize = async () => {
+  // 先加载列设置
+  loadColumnSettings();
+  
   // 并行加载所有必要的数据
   await Promise.all([
     loadMainParameterOptions(),
@@ -1231,6 +1433,13 @@ onMounted(() => {
   font-size: 1.3rem;
 }
 
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.column-btn,
 .filter-btn {
   min-width: 100px;
   height: 2.5rem;
@@ -1801,5 +2010,165 @@ onMounted(() => {
 .project-display:focus {
   border-color: var(--p-primary-color) !important;
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25) !important;
+}
+
+/* Column Dialog 样式 */
+.column-dialog {
+  max-width: 500px;
+}
+
+.column-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 450px;
+  padding: 0.5rem;
+}
+
+.column-description {
+  text-align: center;
+  color: #495057;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.column-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  max-height: 350px;
+  overflow-y: auto;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: #6c757d #f8f9fa;
+}
+
+.column-options::-webkit-scrollbar {
+  width: 8px;
+}
+
+.column-options::-webkit-scrollbar-track {
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+.column-options::-webkit-scrollbar-thumb {
+  background: #6c757d;
+  border-radius: 4px;
+}
+
+.column-option {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.column-option:hover {
+  background: #e9ecef;
+  border-color: var(--p-primary-color);
+}
+
+.column-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  width: 100%;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #495057;
+}
+
+.column-checkbox input[type="checkbox"] {
+  display: none;
+}
+
+.checkmark {
+  position: relative;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ced4da;
+  border-radius: 4px;
+  background: white;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.column-checkbox input[type="checkbox"]:checked + .checkmark {
+  background: var(--p-primary-color);
+  border-color: var(--p-primary-color);
+}
+
+.column-checkbox input[type="checkbox"]:checked + .checkmark::after {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+
+.column-checkbox input[type="checkbox"]:disabled + .checkmark {
+  background: #e9ecef;
+  border-color: #ced4da;
+  cursor: not-allowed;
+}
+
+.column-checkbox:has(input[type="checkbox"]:disabled) {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.column-label {
+  flex: 1;
+  font-weight: 500;
+}
+
+.required-badge {
+  background: #ffc107;
+  color: #212529;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.column-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.column-actions button {
+  min-width: 100px;
+  height: 2.5rem;
+  font-size: 0.9rem;
+}
+
+.select-all-btn,
+.reset-btn {
+  flex: 1;
+  max-width: 120px;
+}
+
+.apply-btn,
+.cancel-btn {
+  flex: 1;
+  max-width: 100px;
 }
 </style>

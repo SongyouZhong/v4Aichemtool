@@ -123,7 +123,16 @@
       
       <!-- 下半部分 - 数据表格 -->
       <div class="bottom-section">
-        <h3>Data Table</h3>
+        <div class="table-header">
+          <h3>化合物列表</h3>
+          <Button 
+            label="Filter" 
+            icon="pi pi-filter" 
+            severity="secondary"
+            @click="openFilterDrawer"
+            class="filter-btn"
+          />
+        </div>
         <div class="table-container">
           <DataTable 
             :value="tableData" 
@@ -213,37 +222,6 @@
               </template>
             </Column>
           </DataTable>
-        </div>
-        
-        <div class="table-actions">
-          <Button 
-            label="Add New Row" 
-            icon="pi pi-plus"
-            @click="() => addNewRow(selectedProject?.id)"
-            class="action-btn"
-          />
-          <Button 
-            label="Load Sample Data" 
-            severity="info" 
-            icon="pi pi-file-import"
-            @click="() => loadSampleTableData(selectedProject?.id)"
-            class="action-btn"
-          />
-          <Button 
-            label="Refresh Data" 
-            severity="success" 
-            icon="pi pi-refresh"
-            @click="handleRefreshTable"
-            class="action-btn"
-            :loading="tableLoading"
-          />
-          <Button 
-            label="Clear Table" 
-            severity="secondary" 
-            icon="pi pi-times"
-            @click="clearTable"
-            class="action-btn"
-          />
         </div>
       </div>
     </div>
@@ -424,6 +402,68 @@
         </div>
       </div>
     </Dialog>
+    
+    <!-- Filter Drawer -->
+    <Drawer 
+      v-model:visible="showFilterDrawer" 
+      header="化合物过滤器"
+      position="right"
+      class="filter-drawer"
+      :modal="true"
+      :dismissableMask="true"
+    >
+      <div class="filter-content">
+        <div class="filter-section">
+          <label for="filter-smiles" class="filter-label">分子式 (SMILES):</label>
+          <InputText 
+            id="filter-smiles"
+            v-model="filterOptions.smiles"
+            placeholder="请输入SMILES分子式 (如: CCO)"
+            class="filter-input"
+          />
+          <small class="help-text">输入SMILES分子式进行相似度搜索</small>
+        </div>
+        
+        <div class="filter-section">
+          <label for="filter-similarity" class="filter-label">相似度阈值:</label>
+          <InputText 
+            id="filter-similarity"
+            v-model="filterOptions.similarity"
+            placeholder="请输入相似度 (0.0 - 1.0)"
+            class="filter-input"
+            @input="validateSimilarity"
+          />
+          <small class="help-text">范围: 0.0 - 1.0，最多一位小数 (如: 0.8)</small>
+          <div v-if="similarityError" class="error-message">
+            {{ similarityError }}
+          </div>
+        </div>
+        
+        <div class="filter-actions">
+          <Button 
+            label="应用过滤" 
+            icon="pi pi-check"
+            @click="applyFilter"
+            class="apply-btn"
+            :disabled="!isFilterValid"
+          />
+          <Button 
+            label="清除过滤" 
+            icon="pi pi-times"
+            severity="secondary"
+            @click="clearFilter"
+            class="clear-btn"
+          />
+          <Button 
+            label="关闭" 
+            icon="pi pi-times"
+            severity="secondary"
+            @click="closeFilterDrawer"
+            class="close-btn"
+          />
+        </div>
+      </div>
+    </Drawer>
   </div>
 </template>
 
@@ -435,6 +475,7 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Dropdown from 'primevue/dropdown';
+import Drawer from 'primevue/drawer';
 
 // 导入自定义组件
 import ProjectList from '@/components/ProjectList.vue';
@@ -526,6 +567,22 @@ const pendingProject = ref<Project | null>(null);
 // 保存确认对话框相关
 const showSaveConfirmDialog = ref(false);
 const saveLoading = ref(false);
+
+// Filter Drawer相关
+const showFilterDrawer = ref(false);
+const filterOptions = ref({
+  smiles: '',
+  similarity: ''
+});
+const similarityError = ref('');
+
+// 计算属性：验证过滤器是否有效
+const isFilterValid = computed(() => {
+  if (!filterOptions.value.smiles.trim()) return false;
+  if (!filterOptions.value.similarity.trim()) return false;
+  if (similarityError.value) return false;
+  return true;
+});
 
 // 业务逻辑方法
 const handleSave = () => {
@@ -736,6 +793,81 @@ const createNewProject = async (name: string, description?: string) => {
   } else {
     alert('项目创建失败，请稍后重试');
   }
+};
+
+// Filter Drawer相关方法
+const openFilterDrawer = () => {
+  showFilterDrawer.value = true;
+};
+
+const closeFilterDrawer = () => {
+  showFilterDrawer.value = false;
+};
+
+const validateSimilarity = () => {
+  const value = filterOptions.value.similarity;
+  similarityError.value = '';
+  
+  if (!value.trim()) {
+    return;
+  }
+  
+  // 验证是否为有效数字
+  const num = parseFloat(value);
+  if (isNaN(num)) {
+    similarityError.value = '请输入有效的数字';
+    return;
+  }
+  
+  // 验证范围
+  if (num < 0 || num > 1) {
+    similarityError.value = '相似度必须在0.0到1.0之间';
+    return;
+  }
+  
+  // 验证小数位数
+  const decimalPlaces = (value.split('.')[1] || '').length;
+  if (decimalPlaces > 1) {
+    similarityError.value = '最多允许一位小数';
+    return;
+  }
+};
+
+const applyFilter = async () => {
+  console.log('应用过滤器:', filterOptions.value);
+  
+  // 这里可以添加具体的过滤逻辑
+  // 例如调用API进行SMILES相似度搜索
+  
+  try {
+    // 示例：基于SMILES和相似度过滤化合物
+    // 实际实现中需要调用后端API
+    alert(`应用过滤器:\nSMILES: ${filterOptions.value.smiles}\n相似度阈值: ${filterOptions.value.similarity}`);
+    
+    // 关闭抽屉
+    closeFilterDrawer();
+    
+    // 刷新表格数据（这里可以传递过滤参数）
+    await loadTableData(1, 10, selectedProject.value?.id);
+    
+  } catch (error) {
+    console.error('过滤失败:', error);
+    alert('过滤操作失败，请稍后重试');
+  }
+};
+
+const clearFilter = async () => {
+  console.log('清除过滤器');
+  
+  // 重置过滤选项
+  filterOptions.value.smiles = '';
+  filterOptions.value.similarity = '';
+  similarityError.value = '';
+  
+  // 重新加载所有数据
+  await loadTableData(1, 10, selectedProject.value?.id);
+  
+  alert('过滤器已清除');
 };
 
 // SMILES 同步方法
@@ -1084,6 +1216,24 @@ onMounted(() => {
   padding: 2rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.table-header h3 {
+  margin: 0;
+  color: var(--p-primary-color);
+  font-size: 1.3rem;
+}
+
+.filter-btn {
+  min-width: 100px;
+  height: 2.5rem;
 }
 
 .bottom-section h3 {
@@ -1523,132 +1673,97 @@ onMounted(() => {
   margin-top: 1rem !important;
 }
 
-@media (max-width: 768px) {
-  .top-section {
-    grid-template-columns: 1fr;
-  }
-  
-  .page-title {
-    font-size: 2rem;
-  }
-  
-  .input-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .input-item {
-    min-width: unset;
-    max-width: unset;
-  }
-  
-  .row-btn {
-    width: 100%;
-    min-width: unset;
-    max-width: unset;
-  }
-  
-  /* 移动端Ketcher控制按钮 */
-  .ketcher-controls {
-    flex-direction: row;
-    justify-content: center;
-    padding: 0;
-    margin-top: 1rem;
-  }
-  
-  .smiles-input-container {
-    min-width: unset;
-  }
-  
-  /* 移动端Set SMILES按钮 */
-  .smiles-set-button {
-    padding-left: 0;
-    justify-content: center;
-    margin-top: 1rem;
-  }
-  
-  .set-smiles-btn {
-    width: 100%;
-  }
-  
-  /* 移动端备注文本框 */
-  .compound-note-textarea {
-    min-height: 80px;
-    max-height: 150px;
-  }
-  
-  .table-actions {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .table-actions .action-btn {
-    width: 200px;
-    min-width: unset;
-  }
-  
-  .action-buttons {
-    justify-content: center;
-  }
-  
-  .smiles-text {
-    max-width: 150px;
-  }
-  
-  .data-table {
-    font-size: 0.8rem;
-  }
+/* Filter Drawer 样式 */
+.filter-drawer {
+  width: 400px;
 }
 
-@media (max-width: 480px) {
-  .data-input-page {
-    padding: 1rem;
-  }
-  
-  .container {
-    padding: 0;
-  }
-  
-  .top-section, .bottom-section {
-    padding: 1rem;
-  }
-  
-  .ketcher-frame {
-    height: 350px;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-    align-items: center;
-  }
-  
-  .action-btn {
-    width: 100%;
-  }
-  
-  /* 移动端对话框优化 */
-  .image-modal-content {
-    min-width: unset;
-    width: 100%;
-  }
-  
-  .detail-row {
-    flex-direction: column;
-    gap: 0.5rem;
-  }
-  
-  .detail-row label {
-    min-width: unset;
-    font-weight: 700;
-  }
-  
-  .modal-actions {
-    flex-direction: column;
-  }
-  
-  .modal-actions button {
-    width: 100%;
-  }
+.filter-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.filter-input:focus {
+  outline: 0;
+  border-color: var(--p-primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.help-text {
+  color: #6c757d;
+  font-size: 0.8rem;
+  font-style: italic;
+  margin-top: 0.25rem;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  background-color: #f8d7da;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+}
+
+.filter-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.apply-btn,
+.clear-btn,
+.close-btn {
+  width: 100%;
+  height: 2.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.apply-btn {
+  order: 1;
+}
+
+.clear-btn {
+  order: 2;
+}
+
+.close-btn {
+  order: 3;
+}
+
+.apply-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Help text styling */

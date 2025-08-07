@@ -18,13 +18,6 @@
             @change="handleProjectChange"
             :loading="projectLoading"
           />
-          <Button 
-            label="管理项目" 
-            icon="pi pi-cog"
-            severity="secondary"
-            @click="showProjectDialog = true"
-            class="manage-project-btn"
-          />
         </div>
         
         <!-- 当前项目显示 -->
@@ -74,7 +67,11 @@
             class="data-table"
             stripedRows
             responsiveLayout="scroll"
+            v-model:expandedRows="expandedRows"
+            dataKey="id"
           >
+            <!-- 展开列 -->
+            <Column :expander="true" headerStyle="width: 3rem" />
             <!-- 化合物名称列 -->
             <Column 
               v-if="isColumnVisible('name')"
@@ -190,17 +187,116 @@
                     class="action-btn edit-btn"
                     v-tooltip.top="'编辑'"
                   />
-                  <Button
-                    icon="pi pi-trash"
-                    severity="danger"
-                    size="small"
-                    @click="deleteRow(data.id)"
-                    class="action-btn delete-btn"
-                    v-tooltip.top="'删除'"
-                  />
                 </div>
               </template>
             </Column>
+
+            <!-- 行展开模板 -->
+            <template #expansion="slotProps">
+              <div class="synthesis-expansion">
+                <div class="expansion-header">
+                  <h4>{{ slotProps.data.name }} - 合成记录</h4>
+                  <div class="expansion-actions">
+                    <Button 
+                      label="添加合成记录" 
+                      icon="pi pi-plus"
+                      size="small"
+                      @click="addSynthesisRecord(slotProps.data)"
+                      class="add-synthesis-btn"
+                    />
+                    <Button 
+                      label="刷新" 
+                      icon="pi pi-refresh"
+                      size="small"
+                      severity="secondary"
+                      @click="refreshSynthesisRecords(slotProps.data.id)"
+                      :loading="synthesisLoading"
+                      class="refresh-synthesis-btn"
+                    />
+                  </div>
+                </div>
+                
+                <!-- 合成记录表格 -->
+                <DataTable
+                  :value="getSynthesisRecords(slotProps.data.id)"
+                  :loading="synthesisLoading"
+                  class="synthesis-table"
+                  stripedRows
+                  responsiveLayout="scroll"
+                  :paginator="true"
+                  :rows="5"
+                  paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport"
+                  currentPageReportTemplate="显示 {first} 到 {last} 条记录，共 {totalRecords} 条"
+                >
+                  <!-- 批次列 -->
+                  <Column field="batch" header="批次" sortable>
+                    <template #body="{ data }">
+                      <span class="batch-number">{{ data.batch || '-' }}</span>
+                    </template>
+                  </Column>
+
+                  <!-- 单位列 -->
+                  <Column field="unit" header="单位" sortable>
+                    <template #body="{ data }">
+                      <span class="unit-text">{{ data.unit || '-' }}</span>
+                    </template>
+                  </Column>
+
+                  <!-- 数量列 -->
+                  <Column field="quantity" header="数量" sortable>
+                    <template #body="{ data }">
+                      <span class="quantity-value">{{ formatQuantity(data.quantity || data.mass) }}</span>
+                    </template>
+                  </Column>
+
+                  <!-- 创建时间列 -->
+                  <Column field="create_time" header="创建时间" sortable>
+                    <template #body="{ data }">
+                      <span class="create-time">{{ formatDateTime(data.create_time) }}</span>
+                    </template>
+                  </Column>
+
+                  <!-- 创建人列 -->
+                  <Column field="creator_name" header="创建人">
+                    <template #body="{ data }">
+                      <span class="creator-name">{{ data.creator_name || data.creator_id || '-' }}</span>
+                    </template>
+                  </Column>
+
+                  <!-- 操作列 -->
+                  <Column header="操作" style="width: 120px">
+                    <template #body="{ data }">
+                      <div class="synthesis-actions">
+                        <Button
+                          icon="pi pi-pencil"
+                          severity="info"
+                          size="small"
+                          @click="editSynthesisRecord(data)"
+                          class="action-btn edit-btn"
+                          v-tooltip.top="'编辑'"
+                        />
+                        <Button
+                          icon="pi pi-trash"
+                          severity="danger"
+                          size="small"
+                          @click="deleteSynthesisRecord(data)"
+                          class="action-btn delete-btn"
+                          v-tooltip.top="'删除'"
+                        />
+                      </div>
+                    </template>
+                  </Column>
+
+                  <!-- 空数据模板 -->
+                  <template #empty>
+                    <div class="empty-synthesis">
+                      <i class="pi pi-info-circle"></i>
+                      <p>暂无合成记录</p>
+                    </div>
+                  </template>
+                </DataTable>
+              </div>
+            </template>
           </DataTable>
         </div>
       </div>
@@ -323,6 +419,79 @@
         </div>
       </div>
     </Dialog>
+
+    <!-- 合成记录编辑对话框 -->
+    <Dialog
+      v-model:visible="showSynthesisDialog"
+      modal
+      :header="synthesisDialogTitle"
+      :style="{ width: '500px' }"
+      class="synthesis-dialog"
+    >
+      <div class="synthesis-form">
+        <div class="form-row">
+          <label for="synthesis-batch">批次 *</label>
+          <InputNumber
+            id="synthesis-batch"
+            v-model="currentSynthesis.batch"
+            placeholder="请输入批次号"
+            :useGrouping="false"
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-row">
+          <label for="synthesis-unit">单位 *</label>
+          <Dropdown
+            id="synthesis-unit"
+            v-model="currentSynthesis.unit"
+            :options="unitOptions"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="请选择单位"
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-row">
+          <label for="synthesis-quantity">数量 *</label>
+          <InputNumber
+            id="synthesis-quantity"
+            v-model="currentSynthesis.mass"
+            placeholder="请输入数量"
+            :minFractionDigits="0"
+            :maxFractionDigits="4"
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-row">
+          <label for="synthesis-description">描述</label>
+          <Textarea
+            id="synthesis-description"
+            v-model="currentSynthesis.description"
+            placeholder="请输入描述（可选）"
+            rows="3"
+            class="form-input"
+          />
+        </div>
+
+        <div class="form-actions">
+          <Button 
+            label="取消" 
+            severity="secondary" 
+            @click="closeSynthesisDialog"
+            class="cancel-btn"
+          />
+          <Button 
+            label="保存" 
+            @click="saveSynthesisRecord"
+            :loading="saving"
+            class="save-btn"
+          />
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -333,6 +502,9 @@ import Column from 'primevue/column';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Dropdown from 'primevue/dropdown';
+import InputText from 'primevue/inputtext';
+import InputNumber from 'primevue/inputnumber';
+import Textarea from 'primevue/textarea';
 
 // 导入自定义组件
 import ProjectList from '@/components/ProjectList.vue';
@@ -341,6 +513,9 @@ import ProjectList from '@/components/ProjectList.vue';
 import { useTableData } from '@/composables/useTableData';
 import { useProjectManagement } from '@/composables/useProjectManagement';
 import type { Project } from '@/types/data';
+
+// 导入合成记录API服务
+import { SyntheticApiService, type SyntheticRecord, type SyntheticRecordCreate, type SyntheticRecordUpdate } from '@/services/syntheticApi';
 
 // 使用组合式函数
 const {
@@ -378,10 +553,42 @@ const {
 const selectedProject = ref<string | null>(null);
 const showColumnDialog = ref(false);
 
+// 行展开和合成记录相关状态
+const expandedRows = ref<{ [key: string]: boolean }>({});
+const synthesisRecords = ref<{ [compoundId: string]: SyntheticRecord[] }>({});
+const synthesisLoading = ref(false);
+const showSynthesisDialog = ref(false);
+const currentSynthesis = ref<Partial<SyntheticRecord & SyntheticRecordCreate>>({
+  compound_id: '',
+  batch: 1,
+  description: '',
+  mass: 0,
+  unit: 'mg',
+  quantity: 0,
+  creator_id: 'current_user' // 应该从用户状态获取
+});
+const saving = ref(false);
+
+// 单位选项
+const unitOptions = ref([
+  { label: '毫克 (mg)', value: 'mg' },
+  { label: '克 (g)', value: 'g' },
+  { label: '千克 (kg)', value: 'kg' },
+  { label: '毫升 (mL)', value: 'mL' },
+  { label: '升 (L)', value: 'L' },
+  { label: '摩尔 (mol)', value: 'mol' },
+  { label: '毫摩尔 (mmol)', value: 'mmol' }
+]);
+
 // 计算属性：当前选中的项目对象
 const currentProject = computed(() => {
   if (!selectedProject.value) return null;
   return projects.value.find(p => p.id === selectedProject.value) || null;
+});
+
+// 计算属性：合成记录对话框标题
+const synthesisDialogTitle = computed(() => {
+  return currentSynthesis.value.id ? '编辑合成记录' : '添加合成记录';
 });
 
 // 定义可用的列配置
@@ -461,6 +668,146 @@ const formatDateTime = (dateTime: string | null | undefined) => {
   } catch (error) {
     return dateTime;
   }
+};
+
+// 格式化数量显示
+const formatQuantity = (quantity: number | null | undefined) => {
+  if (quantity === null || quantity === undefined) return '-';
+  return quantity.toLocaleString();
+};
+
+// 合成记录相关方法
+const getSynthesisRecords = (compoundId: string): SyntheticRecord[] => {
+  return synthesisRecords.value[compoundId] || [];
+};
+
+const loadSynthesisRecords = async (compoundId: string) => {
+  synthesisLoading.value = true;
+  try {
+    const response = await SyntheticApiService.getSyntheticsByCompound(compoundId, 1, 50);
+    synthesisRecords.value[compoundId] = response.items;
+    console.log(`加载化合物 ${compoundId} 的合成记录:`, response.items.length);
+  } catch (error) {
+    console.error('加载合成记录失败:', error);
+    synthesisRecords.value[compoundId] = [];
+  } finally {
+    synthesisLoading.value = false;
+  }
+};
+
+const refreshSynthesisRecords = async (compoundId: string) => {
+  await loadSynthesisRecords(compoundId);
+};
+
+const addSynthesisRecord = (compound: any) => {
+  currentSynthesis.value = {
+    compound_id: compound.id,
+    batch: 1,
+    description: '',
+    mass: 0,
+    unit: 'mg',
+    quantity: 0,
+    creator_id: 'current_user'
+  };
+  showSynthesisDialog.value = true;
+};
+
+const editSynthesisRecord = (record: SyntheticRecord) => {
+  currentSynthesis.value = { ...record };
+  showSynthesisDialog.value = true;
+};
+
+const deleteSynthesisRecord = async (record: SyntheticRecord) => {
+  const confirmed = confirm(`确定要删除批次 "${record.batch}" 的合成记录吗？`);
+  if (confirmed) {
+    try {
+      await SyntheticApiService.deleteSynthetic(record.id);
+      
+      // 从本地数据中删除
+      const compoundRecords = synthesisRecords.value[record.compound_id];
+      if (compoundRecords) {
+        const index = compoundRecords.findIndex(r => r.id === record.id);
+        if (index > -1) {
+          compoundRecords.splice(index, 1);
+        }
+      }
+      
+      alert('合成记录删除成功');
+    } catch (error) {
+      console.error('删除合成记录失败:', error);
+      alert('删除失败，请稍后重试');
+    }
+  }
+};
+
+const saveSynthesisRecord = async () => {
+  // 验证表单
+  if (!currentSynthesis.value.batch || !currentSynthesis.value.unit || !currentSynthesis.value.mass) {
+    alert('请填写所有必填项');
+    return;
+  }
+
+  saving.value = true;
+  try {
+    if (currentSynthesis.value.id) {
+      // 更新现有记录
+      const updateData: SyntheticRecordUpdate = {
+        batch: currentSynthesis.value.batch,
+        description: currentSynthesis.value.description,
+        mass: currentSynthesis.value.mass
+      };
+      
+      const updatedRecord = await SyntheticApiService.updateSynthetic(currentSynthesis.value.id, updateData);
+      
+      // 更新本地数据
+      const compoundRecords = synthesisRecords.value[currentSynthesis.value.compound_id!];
+      if (compoundRecords) {
+        const index = compoundRecords.findIndex(r => r.id === currentSynthesis.value.id);
+        if (index > -1) {
+          compoundRecords[index] = updatedRecord;
+        }
+      }
+    } else {
+      // 添加新记录
+      const createData: SyntheticRecordCreate = {
+        compound_id: currentSynthesis.value.compound_id!,
+        batch: currentSynthesis.value.batch!,
+        description: currentSynthesis.value.description,
+        mass: currentSynthesis.value.mass!,
+        creator_id: currentSynthesis.value.creator_id!
+      };
+      
+      const newRecord = await SyntheticApiService.createSynthetic(createData);
+      
+      // 添加到本地数据
+      const compoundId = currentSynthesis.value.compound_id!;
+      if (!synthesisRecords.value[compoundId]) {
+        synthesisRecords.value[compoundId] = [];
+      }
+      synthesisRecords.value[compoundId].unshift(newRecord);
+    }
+    
+    closeSynthesisDialog();
+    alert('合成记录保存成功');
+  } catch (error) {
+    console.error('保存合成记录失败:', error);
+    alert('保存失败，请稍后重试');
+  } finally {
+    saving.value = false;
+  }
+};
+
+const closeSynthesisDialog = () => {
+  showSynthesisDialog.value = false;
+  currentSynthesis.value = {
+    compound_id: '',
+    batch: 1,
+    description: '',
+    mass: 0,
+    unit: 'mg',
+    quantity: 0,
+    creator_id: 'current_user'
+  };
 };
 
 // 事件处理方法
@@ -639,6 +986,19 @@ watch(projects, (newProjects) => {
     tableData.value = [];
     total.value = 0;
   }
+}, { deep: true });
+
+// 监听行展开事件，自动加载合成记录
+watch(expandedRows, (newExpanded, oldExpanded) => {
+  // 找出新展开的行
+  Object.keys(newExpanded).forEach(compoundId => {
+    if (newExpanded[compoundId] && (!oldExpanded || !oldExpanded[compoundId])) {
+      // 如果还没有加载过这个化合物的合成记录，则加载
+      if (!synthesisRecords.value[compoundId]) {
+        loadSynthesisRecords(compoundId);
+      }
+    }
+  });
 }, { deep: true });
 
 onMounted(() => {
@@ -1020,6 +1380,127 @@ onMounted(() => {
   min-width: 120px;
 }
 
+/* 合成记录展开区域样式 */
+.synthesis-expansion {
+  padding: 1rem;
+  background-color: #f8f9fa;
+  border-left: 4px solid var(--p-primary-color);
+}
+
+.expansion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.expansion-header h4 {
+  margin: 0;
+  color: var(--p-primary-color);
+  font-size: 1.1rem;
+}
+
+.expansion-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-synthesis-btn,
+.refresh-synthesis-btn {
+  min-width: 120px;
+}
+
+/* 合成记录表格样式 */
+.synthesis-table {
+  background-color: white;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.synthesis-table :deep(.p-datatable-header) {
+  background-color: #e9ecef;
+  padding: 0.75rem;
+}
+
+.batch-number {
+  font-weight: 500;
+  color: #495057;
+}
+
+.unit-text {
+  padding: 0.25rem 0.5rem;
+  background-color: #e3f2fd;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: #1976d2;
+}
+
+.quantity-value {
+  font-weight: 500;
+  color: #2e7d32;
+}
+
+.creator-name {
+  color: #666;
+}
+
+.synthesis-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.empty-synthesis {
+  text-align: center;
+  padding: 2rem;
+  color: #666;
+}
+
+.empty-synthesis i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  color: #ccc;
+}
+
+/* 合成记录对话框样式 */
+.synthesis-dialog :deep(.p-dialog-content) {
+  padding: 1.5rem;
+}
+
+.synthesis-form {
+  min-width: 400px;
+}
+
+.form-row {
+  margin-bottom: 1.5rem;
+}
+
+.form-row label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-input {
+  width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.cancel-btn,
+.save-btn {
+  min-width: 80px;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .synthetic-input-page {
@@ -1051,6 +1532,30 @@ onMounted(() => {
   
   .column-actions {
     justify-content: center;
+  }
+
+  /* 合成记录展开区域响应式 */
+  .expansion-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  
+  .expansion-actions {
+    justify-content: center;
+  }
+  
+  .synthesis-form {
+    min-width: auto;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .cancel-btn,
+  .save-btn {
+    width: 100%;
   }
 }
 </style>

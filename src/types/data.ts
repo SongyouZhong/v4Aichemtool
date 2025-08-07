@@ -119,3 +119,31 @@ export interface KetcherResponse {
   data?: any;
   error?: string;
 }
+
+// 合成记录相关类型
+export interface SyntheticRecord {
+  id: string;
+  compound_id: string;
+  batch: number;
+  description?: string;
+  mass?: number;
+  unit: string;
+  quantity: number;
+  create_time: string;
+  creator_id: string;
+  creator_name: string;
+}
+
+export interface SyntheticRecordCreate {
+  compound_id: string;
+  batch: number;
+  description?: string;
+  mass: number;
+  creator_id: string;
+}
+
+export interface SyntheticRecordUpdate {
+  batch?: number;
+  description?: string;
+  mass?: number;
+}

@@ -7,6 +7,7 @@ const LoginPage = () => import('@/views/LoginPage.vue')
 const SmallMoleculePage = () => import('@/views/platforms/SmallMoleculePage.vue')
 const ProteinPage = () => import('@/views/platforms/ProteinPage.vue')
 const DataInputPage = () => import('@/views/platforms/MolInputPage.vue')
+const SyntheticInputPage = () => import('@/views/platforms/SyntheticInputPage.vue')
 
 const routes = [
   {
@@ -37,6 +38,12 @@ const routes = [
     path: '/platforms/data-input',
     name: 'DataInput',
     component: DataInputPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/platforms/synthetic-input',
+    name: 'SyntheticInput',
+    component: SyntheticInputPage,
     meta: { requiresAuth: true }
   }
 ]

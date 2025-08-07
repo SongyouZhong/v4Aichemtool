@@ -109,7 +109,12 @@ const smallMoleculeTools = ref<SmallMoleculeTool[]>([
 const handleToolClick = (tool: SmallMoleculeTool) => {
   // 根据工具类型导航到相应页面
   if (tool.type === 'data-input') {
-    router.push({ name: 'DataInput' });
+    // 检查工具标题来决定导航目标
+    if (tool.title === '合成录入平台') {
+      router.push({ name: 'SyntheticInput' });
+    } else {
+      router.push({ name: 'DataInput' });
+    }
   } else {
     router.push({ name: 'SmallMolecule', query: { tool: tool.type } });
   }

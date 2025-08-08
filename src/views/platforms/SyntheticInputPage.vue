@@ -754,7 +754,8 @@ const saveSynthesisRecord = async () => {
       const updateData: SyntheticRecordUpdate = {
         batch: currentSynthesis.value.batch,
         description: currentSynthesis.value.description,
-        mass: currentSynthesis.value.mass
+        mass: currentSynthesis.value.mass,
+        unit: currentSynthesis.value.unit  // 添加单位字段
       };
       
       const updatedRecord = await SyntheticApiService.updateSynthetic(currentSynthesis.value.id, updateData);
@@ -774,6 +775,7 @@ const saveSynthesisRecord = async () => {
         batch: currentSynthesis.value.batch!,
         description: currentSynthesis.value.description,
         mass: currentSynthesis.value.mass!,
+        unit: currentSynthesis.value.unit!,  // 添加单位字段
         creator_id: currentSynthesis.value.creator_id!
       };
       

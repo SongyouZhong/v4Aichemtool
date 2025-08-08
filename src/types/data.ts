@@ -139,6 +139,7 @@ export interface SyntheticRecordCreate {
   batch: number;
   description?: string;
   mass: number;
+  unit: string;  // 添加单位字段
   creator_id: string;
 }
 
@@ -146,4 +147,5 @@ export interface SyntheticRecordUpdate {
   batch?: number;
   description?: string;
   mass?: number;
+  unit?: string;  // 添加单位字段
 }

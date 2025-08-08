@@ -625,7 +625,8 @@ const defaultColumnSettings = [
 const syntheticPriorityOptions = [
   { label: '高 (High)', value: 3 },
   { label: '中 (Medium)', value: 2 },
-  { label: '低 (Low)', value: 1 }
+  { label: '低 (Low)', value: 1 },
+  { label: '不合成 (No Synthesis)', value: 0 }
 ];
 
 // 列相关的辅助方法

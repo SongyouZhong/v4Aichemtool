@@ -1,7 +1,7 @@
 <template>
   <div class="data-input-page">
     <div class="container">
-      <h1 class="page-title">Data Input Platform</h1>
+      <h1 class="page-title">化合物录入</h1>
       
       <!-- 上半部分 -->
       <div class="top-section">
@@ -249,8 +249,8 @@
                     size="small" 
                     outlined
                     severity="danger"
-                    @click="deleteRow(slotProps.data)"
-                    v-tooltip.top="'Delete'"
+                    @click="softDeleteCompound(slotProps.data)"
+                    v-tooltip.top="'删除（软删除）'"
                     class="action-btn delete-btn"
                   />
                 </div>
@@ -336,7 +336,7 @@
             <Dropdown 
               id="edit-priority"
               v-model="editingCompound.synthetic_priority" 
-              :options="syntheticPriorityOptions" 
+              :options="syntheticPriorityDisplayOptions" 
               optionLabel="label" 
               optionValue="value"
               placeholder="选择优先级"
@@ -867,17 +867,25 @@ const visibleColumns = computed(() => {
   return availableColumns.value.filter(col => col.visible);
 });
 
-// 合成优先级选项
+// 合成优先级选项（录入时不包含"不合成"选项）
 const syntheticPriorityOptions = ref([
   { label: '高 (High)', value: 3 },
   { label: '中 (Medium)', value: 2 },
   { label: '低 (Low)', value: 1 }
 ]);
 
+// 合成优先级选项（包含"不合成"，用于显示）
+const syntheticPriorityDisplayOptions = ref([
+  { label: '高 (High)', value: 3 },
+  { label: '中 (Medium)', value: 2 },
+  { label: '低 (Low)', value: 1 },
+  { label: '不合成 (No Synthesis)', value: 0 }
+]);
+
 // 获取优先级显示文本的辅助函数
 const getPriorityLabel = (priority: number | null | undefined) => {
   if (priority === null || priority === undefined) return '-';
-  const option = syntheticPriorityOptions.value.find(opt => opt.value === priority);
+  const option = syntheticPriorityDisplayOptions.value.find(opt => opt.value === priority);
   return option ? option.label : `${priority}`;
 };
 
@@ -1331,6 +1339,36 @@ const confirmSaveChanges = async () => {
     alert('更新化合物失败，请稍后重试。');
   } finally {
     saveLoading.value = false;
+  }
+};
+
+// 软删除化合物（设置合成优先级为0）
+const softDeleteCompound = async (compound: any) => {
+  const confirmed = confirm(`确定要删除化合物 "${compound.name}" 吗？\n\n删除后，该化合物将被标记为"不合成"状态，不会从数据库中彻底删除。`);
+  
+  if (!confirmed) {
+    return;
+  }
+  
+  try {
+    console.log('软删除化合物:', compound);
+    
+    // 调用API更新化合物，将合成优先级设置为0
+    const updateData = {
+      synthetic_priority: 0  // 设置为"不合成"
+    };
+    
+    const updatedCompound = await CompoundApiService.updateCompound(compound.id, updateData);
+    
+    console.log('化合物软删除成功:', updatedCompound);
+    alert(`化合物 "${compound.name}" 已删除（标记为不合成状态）`);
+    
+    // 刷新表格数据以移除该化合物（因为列表只显示非0优先级的化合物）
+    await loadTableData(1, 10, selectedProject.value?.id);
+    
+  } catch (error) {
+    console.error('删除化合物失败:', error);
+    alert('删除化合物失败，请稍后重试。');
   }
 };
 

@@ -75,4 +75,62 @@ export class CompoundApiService {
     
     return response.data
   }
+
+  // SMILES相似性搜索
+  static async searchSimilarCompounds(params: {
+    target_smiles: string
+    similarity_threshold: number
+    project_id?: string
+  }): Promise<{
+    message: string
+    target_smiles: string
+    similarity_threshold: number
+    project_id?: string
+    total_searched: number
+    total_found: number
+    results: Array<Compound & { similarity: number }>
+  }> {
+    const queryParams = {
+      target_smiles: params.target_smiles,
+      similarity_threshold: params.similarity_threshold,
+      ...(params.project_id && { project_id: params.project_id })
+    }
+
+    const response = await apiClient.get<{
+      message: string
+      target_smiles: string
+      similarity_threshold: number
+      project_id?: string
+      total_searched: number
+      total_found: number
+      results: Array<Compound & { similarity: number }>
+    }>(
+      API_ENDPOINTS.COMPOUNDS.LIST + '/similarity-search',
+      queryParams
+    )
+    
+    return response.data
+  }
+
+  // 精确SMILES搜索
+  static async searchBySmiles(params: {
+    smiles: string
+    project_id?: string
+    page?: number
+    size?: number
+  }): Promise<PaginatedResponse<Compound>> {
+    const queryParams = {
+      page: params.page || PAGINATION_CONFIG.DEFAULT_PAGE,
+      size: params.size || PAGINATION_CONFIG.DEFAULT_SIZE,
+      smiles: params.smiles,
+      ...(params.project_id && { project_id: params.project_id })
+    }
+
+    const response = await apiClient.get<PaginatedResponse<Compound>>(
+      API_ENDPOINTS.COMPOUNDS.LIST,
+      queryParams
+    )
+    
+    return response.data
+  }
 }

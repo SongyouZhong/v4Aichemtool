@@ -1,6 +1,8 @@
 import { createApp } from 'vue';
 import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
+import ToastService from 'primevue/toastservice';
+import ConfirmationService from 'primevue/confirmationservice';
 import Aura from '@primeuix/themes/aura';        // styled-mode 主题预设
 import 'primeicons/primeicons.css';                // 图标样式
 
@@ -24,6 +26,8 @@ app.use(PrimeVue, {
     // }
   }
 });
+app.use(ToastService);
+app.use(ConfirmationService);
 
 // 在应用挂载前进行认证检查
 const initializeApp = async () => {

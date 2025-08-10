@@ -4,9 +4,8 @@ import { useAuthStore } from '@/stores'
 // 路由组件懒加载
 const HomePage = () => import('@/views/HomePage.vue')
 const LoginPage = () => import('@/views/LoginPage.vue')
-const SmallMoleculePage = () => import('@/views/platforms/SmallMoleculePage.vue')
 const ProteinPage = () => import('@/views/platforms/ProteinPage.vue')
-const DataInputPage = () => import('@/views/platforms/MolInputPage.vue')
+const DataInputPage = () => import('@/views/platforms/MoleculePage.vue')
 const SyntheticInputPage = () => import('@/views/platforms/SyntheticInputPage.vue')
 
 const routes = [
@@ -21,12 +20,6 @@ const routes = [
     name: 'Login',
     component: LoginPage,
     meta: { requiresAuth: false }
-  },
-  {
-    path: '/platforms/small-molecule',
-    name: 'SmallMolecule',
-    component: SmallMoleculePage,
-    meta: { requiresAuth: true }
   },
   {
     path: '/platforms/protein',

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { User, AuthState } from '@/types'
+import type { AuthUser, AuthState } from '@/types'
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
@@ -23,7 +23,7 @@ export const useAuthStore = defineStore('auth', {
         
         // 简单的验证逻辑（实际项目中应该调用真实API）
         if (username && password) {
-          const userData: User = {
+          const userData: AuthUser = {
             username,
             email: `${username}@example.com`,
             id: Math.random().toString(36).substr(2, 9)
@@ -82,7 +82,7 @@ export const useAuthStore = defineStore('auth', {
 
     async autoLogin() {
       try {
-        const guestUser: User = {
+        const guestUser: AuthUser = {
           username: 'Guest User',
           email: 'guest@aichemtool.com',
           id: 'guest-' + Date.now()

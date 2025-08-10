@@ -102,19 +102,25 @@ const smallMoleculeTools = ref<SmallMoleculeTool[]>([
     category: '合成结果数据录入',
     description: 'Comprehensive data input and management platform for chemical and molecular data. Features customizable input forms and structured data tables for efficient data organization.',
     buttonText: 'Access Platform',
-    type: 'data-input'
+    type: 'synthetic-input'
+  },
+  {
+    title: '用户管理平台',
+    category: 'User Management/Administration',
+    description: '用户信息管理系统，支持用户的创建、编辑、删除和查询功能。提供完整的用户生命周期管理，包括部门分组和权限管理。',
+    buttonText: '进入管理',
+    type: 'user-management'
   }
 ]);
 
 const handleToolClick = (tool: SmallMoleculeTool) => {
   // 根据工具类型导航到相应页面
   if (tool.type === 'data-input') {
-    // 检查工具标题来决定导航目标
-    if (tool.title === '合成录入平台') {
-      router.push({ name: 'SyntheticInput' });
-    } else {
-      router.push({ name: 'DataInput' });
-    }
+    router.push({ name: 'DataInput' });
+  } else if (tool.type === 'synthetic-input') {
+    router.push({ name: 'SyntheticInput' });
+  } else if (tool.type === 'user-management') {
+    router.push({ name: 'UserManagement' });
   } else {
     router.push({ name: 'SmallMolecule', query: { tool: tool.type } });
   }

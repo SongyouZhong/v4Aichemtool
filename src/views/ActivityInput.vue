@@ -59,16 +59,16 @@
                 <small v-if="errors.compound_id" class="p-error">{{ errors.compound_id }}</small>
               </div>
 
-              <!-- 合成ID -->
+              <!-- 合成名称 -->
               <div class="form-group">
-                <label for="synthetic">合成ID</label>
+                <label for="synthetic">合成名称</label>
                 <Dropdown
                   id="synthetic"
-                  v-model="formData.synthetic_id"
+                  v-model="formData.synthetic_name"
                   :options="synthetics"
-                  option-label="displayName"
-                  option-value="id"
-                  placeholder="请选择合成批次"
+                  option-label="synthetic_name"
+                  option-value="synthetic_name"
+                  placeholder="请选择合成名称"
                   class="form-input"
                 />
               </div>
@@ -260,7 +260,7 @@ const currentSmiles = ref<string>('');
 const formData = ref<ActivityCreate>({
   compound_id: '',
   project_id: '',
-  synthetic_id: '',
+  synthetic_name: '',
   assay_id: '',
   activity_type: 'IC50',
   activity_relation: '=',
@@ -371,10 +371,7 @@ const loadCompoundsByProject = async (projectId: string) => {
 const loadSyntheticsByCompound = async (compoundId: string) => {
   try {
     const response = await syntheticApi.getByCompound(compoundId, { size: 100 });
-    synthetics.value = (response.items || []).map((syn: any) => ({
-      ...syn,
-      displayName: `批次 ${syn.batch || 'N/A'} - ${syn.description || 'No description'}`
-    }));
+    synthetics.value = (response.items || []).filter((syn: any) => syn.synthetic_name);
   } catch (error) {
     console.error('Failed to load synthetics:', error);
     synthetics.value = [];
@@ -385,7 +382,7 @@ const loadSyntheticsByCompound = async (compoundId: string) => {
 const onProjectChange = () => {
   // 重置相关字段
   formData.value.compound_id = '';
-  formData.value.synthetic_id = '';
+  formData.value.synthetic_name = '';
   currentSmiles.value = '';
   synthetics.value = [];
 };
@@ -397,8 +394,8 @@ const onCompoundChange = () => {
     currentSmiles.value = selectedCompound.smiles || '';
     loadSyntheticsByCompound(selectedCompound.id);
   }
-  // 重置合成ID
-  formData.value.synthetic_id = '';
+  // 重置合成名称
+  formData.value.synthetic_name = '';
 };
 
 // 表单验证
@@ -475,7 +472,7 @@ const resetForm = () => {
   formData.value = {
     compound_id: '',
     project_id: selectedProject.value,
-    synthetic_id: '',
+    synthetic_name: '',
     assay_id: '',
     activity_type: 'IC50',
     activity_relation: '=',

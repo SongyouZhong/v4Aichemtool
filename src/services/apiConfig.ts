@@ -46,7 +46,19 @@ export const API_ENDPOINTS = {
     UPDATE: (id: string) => `/synthetics/${id}`,
     DELETE: (id: string) => `/synthetics/${id}`,
   },
-  
+
+  // 活性数据相关
+  ACTIVITIES: {
+    LIST: '/activities',
+    CREATE: '/activities',
+    GET: (id: string) => `/activities/${id}`,
+    UPDATE: (id: string) => `/activities/${id}`,
+    DELETE: (id: string) => `/activities/${id}`,
+    BY_COMPOUND: (id: string) => `/activities/compound/${id}`,
+    BY_PROJECT: (id: string) => `/activities/project/${id}`,
+    BY_ASSAY: (id: string) => `/activities/assay/${id}`,
+  },
+
   // 库存相关
   STOCKS: {
     LIST: '/stocks',

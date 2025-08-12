@@ -2,7 +2,7 @@ export interface Activity {
   id?: string;
   compound_id: string;
   project_id: string;
-  synthetic_id?: string;
+  synthetic_name?: string;
   assay_id: string;
   activity_type: 'Ki' | 'IC50' | 'EC50';
   activity_relation: '>' | '<' | '=';

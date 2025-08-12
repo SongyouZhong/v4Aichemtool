@@ -4,7 +4,7 @@ import type { Activity, ActivityCreate, ActivityUpdate } from '@/types/activity'
 export const activityApi = {
   // 创建活性数据
   create: async (data: ActivityCreate): Promise<Activity> => {
-    const response = await apiClient.post('/api/v1/activities/', data);
+    const response = await apiClient.post('/activities/', data);
     return response.data as Activity;
   },
 
@@ -18,13 +18,13 @@ export const activityApi = {
     activity_type?: string;
     activity_relation?: string;
   } = {}): Promise<any> => {
-    const response = await apiClient.get('/api/v1/activities/', { params });
+    const response = await apiClient.get('/activities/', { params });
     return response.data;
   },
 
   // 根据ID获取活性数据
   getById: async (id: string): Promise<Activity> => {
-    const response = await apiClient.get(`/api/v1/activities/${id}`);
+    const response = await apiClient.get(`/activities/${id}`);
     return response.data as Activity;
   },
 
@@ -33,7 +33,7 @@ export const activityApi = {
     page?: number;
     size?: number;
   } = {}): Promise<any> => {
-    const response = await apiClient.get(`/api/v1/activities/compound/${compoundId}`, { params });
+    const response = await apiClient.get(`/activities/compound/${compoundId}`, { params });
     return response.data;
   },
 
@@ -42,7 +42,7 @@ export const activityApi = {
     page?: number;
     size?: number;
   } = {}): Promise<any> => {
-    const response = await apiClient.get(`/api/v1/activities/project/${projectId}`, { params });
+    const response = await apiClient.get(`/activities/project/${projectId}`, { params });
     return response.data;
   },
 
@@ -51,18 +51,18 @@ export const activityApi = {
     page?: number;
     size?: number;
   } = {}): Promise<any> => {
-    const response = await apiClient.get(`/api/v1/activities/assay/${assayId}`, { params });
+    const response = await apiClient.get(`/activities/assay/${assayId}`, { params });
     return response.data;
   },
 
   // 更新活性数据
   update: async (id: string, data: ActivityUpdate): Promise<Activity> => {
-    const response = await apiClient.put(`/api/v1/activities/${id}`, data);
+    const response = await apiClient.put(`/activities/${id}`, data);
     return response.data as Activity;
   },
 
   // 删除活性数据
   delete: async (id: string): Promise<void> => {
-    await apiClient.delete(`/api/v1/activities/${id}`);
+    await apiClient.delete(`/activities/${id}`);
   }
 };

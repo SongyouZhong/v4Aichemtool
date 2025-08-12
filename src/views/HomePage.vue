@@ -117,6 +117,13 @@ const smallMoleculeTools = ref<SmallMoleculeTool[]>([
     description: '活性数据录入和管理系统，支持化合物活性数据的录入、编辑和查询。包括Ki、IC50、EC50等活性类型的数据管理功能。',
     buttonText: '录入活性',
     type: 'activity-input'
+  },
+  {
+    title: '检测方法管理',
+    category: 'Assay Management/Configuration',
+    description: '检测方法管理系统，支持检测方法的创建、编辑、删除和查询功能。为活性数据录入提供检测方法配置支持。',
+    buttonText: '管理检测方法',
+    type: 'assay-management'
   }
 ]);
 
@@ -130,6 +137,8 @@ const handleToolClick = (tool: SmallMoleculeTool) => {
     router.push({ name: 'UserManagement' });
   } else if (tool.type === 'activity-input') {
     router.push({ name: 'ActivityInput' });
+  } else if (tool.type === 'assay-management') {
+    router.push({ name: 'AssayManagement' });
   } else {
     router.push({ name: 'SmallMolecule', query: { tool: tool.type } });
   }

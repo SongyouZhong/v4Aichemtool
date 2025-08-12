@@ -8,6 +8,7 @@ const DataInputPage = () => import('@/views/platforms/MoleculePage.vue')
 const SyntheticInputPage = () => import('@/views/platforms/SyntheticInputPage.vue')
 const UserManagementPage = () => import('@/views/UserManagementPage.vue')
 const ActivityInputPage = () => import('@/views/ActivityInput.vue')
+const AssayManagementPage = () => import('@/views/AssayManagement.vue')
 
 const routes = [
   {
@@ -44,6 +45,12 @@ const routes = [
     path: '/platforms/activity-input',
     name: 'ActivityInput',
     component: ActivityInputPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/platforms/assay-management',
+    name: 'AssayManagement',
+    component: AssayManagementPage,
     meta: { requiresAuth: true }
   }
 ]

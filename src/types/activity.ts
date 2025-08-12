@@ -38,6 +38,7 @@ export interface Synthetic {
   id: string;
   compound_id: string;
   batch?: number;
+  synthetic_name?: string;  // 添加合成名称字段
   description?: string;
 }
 

@@ -437,6 +437,18 @@
             placeholder="请输入批次号"
             :useGrouping="false"
             class="form-input"
+            @update:modelValue="onBatchChange"
+          />
+        </div>
+
+        <div class="form-row">
+          <label for="synthesis-name">合成名称</label>
+          <InputText
+            id="synthesis-name"
+            v-model="currentSynthesis.synthetic_name"
+            placeholder="将根据化合物名称和批次自动生成"
+            class="form-input"
+            readonly
           />
         </div>
 
@@ -517,6 +529,9 @@ import type { Project } from '@/types/data';
 // 导入合成记录API服务
 import { SyntheticApiService, type SyntheticRecord, type SyntheticRecordCreate, type SyntheticRecordUpdate } from '@/services/syntheticApi';
 
+// 导入合成工具函数
+import { generateSyntheticName } from '@/utils/syntheticUtils';
+
 // 使用组合式函数
 const {
   tableData,
@@ -561,6 +576,7 @@ const showSynthesisDialog = ref(false);
 const currentSynthesis = ref<Partial<SyntheticRecord & SyntheticRecordCreate>>({
   compound_id: '',
   batch: 1,
+  synthetic_name: '',  // 添加合成名称字段
   description: '',
   mass: 0,
   unit: 'mg',
@@ -704,6 +720,7 @@ const addSynthesisRecord = (compound: any) => {
   currentSynthesis.value = {
     compound_id: compound.id,
     batch: 1,
+    synthetic_name: generateSyntheticName(compound.name || '', 1),  // 自动生成合成名称
     description: '',
     mass: 0,
     unit: 'mg',
@@ -741,6 +758,32 @@ const deleteSynthesisRecord = async (record: SyntheticRecord) => {
   }
 };
 
+// 批次变化时自动生成合成名称
+const onBatchChange = () => {
+  console.log('批次发生变化:', currentSynthesis.value.batch);
+  console.log('当前化合物ID:', currentSynthesis.value.compound_id);
+  
+  if (currentSynthesis.value.batch && currentSynthesis.value.compound_id) {
+    const compoundName = getCurrentCompoundName();
+    console.log('获取到的化合物名称:', compoundName);
+    
+    if (compoundName) {
+      const newSyntheticName = generateSyntheticName(compoundName, currentSynthesis.value.batch);
+      console.log('生成的合成名称:', newSyntheticName);
+      currentSynthesis.value.synthetic_name = newSyntheticName;
+    }
+  }
+};
+
+// 获取当前化合物名称
+const getCurrentCompoundName = (): string => {
+  if (!currentSynthesis.value.compound_id) return '';
+  
+  // 从当前表格数据中查找化合物名称
+  const compound = tableData.value.find((item: any) => item.id === currentSynthesis.value.compound_id);
+  return compound?.name || '';
+};
+
 const saveSynthesisRecord = async () => {
   // 验证表单
   if (!currentSynthesis.value.batch || !currentSynthesis.value.unit || !currentSynthesis.value.mass) {
@@ -754,6 +797,7 @@ const saveSynthesisRecord = async () => {
       // 更新现有记录
       const updateData: SyntheticRecordUpdate = {
         batch: currentSynthesis.value.batch,
+        synthetic_name: currentSynthesis.value.synthetic_name,  // 添加合成名称字段
         description: currentSynthesis.value.description,
         mass: currentSynthesis.value.mass,
         unit: currentSynthesis.value.unit  // 添加单位字段
@@ -774,6 +818,7 @@ const saveSynthesisRecord = async () => {
       const createData: SyntheticRecordCreate = {
         compound_id: currentSynthesis.value.compound_id!,
         batch: currentSynthesis.value.batch!,
+        synthetic_name: currentSynthesis.value.synthetic_name,  // 添加合成名称字段
         description: currentSynthesis.value.description,
         mass: currentSynthesis.value.mass!,
         unit: currentSynthesis.value.unit!,  // 添加单位字段
@@ -805,6 +850,7 @@ const closeSynthesisDialog = () => {
   currentSynthesis.value = {
     compound_id: '',
     batch: 1,
+    synthetic_name: '',  // 重置合成名称
     description: '',
     mass: 0,
     unit: 'mg',
@@ -1003,6 +1049,19 @@ watch(expandedRows, (newExpanded, oldExpanded) => {
     }
   });
 }, { deep: true });
+
+// 监听合成记录批次变化，自动更新合成名称
+watch(() => currentSynthesis.value.batch, (newBatch) => {
+  console.log('监听到批次变化:', newBatch);
+  if (newBatch && currentSynthesis.value.compound_id) {
+    const compoundName = getCurrentCompoundName();
+    if (compoundName) {
+      const newSyntheticName = generateSyntheticName(compoundName, newBatch);
+      console.log('通过 watch 生成的合成名称:', newSyntheticName);
+      currentSynthesis.value.synthetic_name = newSyntheticName;
+    }
+  }
+});
 
 onMounted(() => {
   initialize();

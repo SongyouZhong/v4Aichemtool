@@ -6,6 +6,7 @@ export interface SyntheticRecord {
   id: string;
   compound_id: string;
   batch: number;
+  synthetic_name?: string;  // 添加合成名称字段
   description?: string;
   mass?: number;
   unit: string;
@@ -18,6 +19,7 @@ export interface SyntheticRecord {
 export interface SyntheticRecordCreate {
   compound_id: string;
   batch: number;
+  synthetic_name?: string;  // 添加合成名称字段
   description?: string;
   mass: number;
   unit: string;  // 添加单位字段
@@ -26,6 +28,7 @@ export interface SyntheticRecordCreate {
 
 export interface SyntheticRecordUpdate {
   batch?: number;
+  synthetic_name?: string;  // 添加合成名称字段
   description?: string;
   mass?: number;
   unit?: string;  // 添加单位字段

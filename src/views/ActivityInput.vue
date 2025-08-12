@@ -229,6 +229,7 @@ import { assayApi } from '@/services/assayApi';
 import { projectApi } from '@/services/projectApi';
 import { compoundApi } from '@/services/compoundApi';
 import { syntheticApi } from '@/services/syntheticApi';
+import { API_CONFIG } from '@/services/apiConfig';
 import type { 
   ActivityCreate, 
   Project, 
@@ -292,7 +293,7 @@ const activityUnits = ref([
 // 计算分子式图片URL
 const moleculeImageUrl = computed(() => {
   if (!currentSmiles.value) return '';
-  return `http://localhost:8001/api/v1/smiles/smiles2img?smiles=${encodeURIComponent(currentSmiles.value)}`;
+  return `${API_CONFIG.BASE_URL}/smiles/smiles2img?smiles=${encodeURIComponent(currentSmiles.value)}`;
 });
 
 // 页面加载时获取数据

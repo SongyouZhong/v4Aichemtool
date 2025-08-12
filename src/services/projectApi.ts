@@ -79,3 +79,13 @@ export class ProjectApiService {
     return response.items
   }
 }
+
+// 创建兼容的导出，便于其他地方使用
+export const projectApi = {
+  getList: ProjectApiService.getProjects,
+  getById: ProjectApiService.getProject,
+  create: ProjectApiService.createProject,
+  update: ProjectApiService.updateProject,
+  delete: ProjectApiService.deleteProject,
+  getAll: ProjectApiService.getAllProjects
+}

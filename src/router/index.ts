@@ -4,10 +4,10 @@ import { useAuthStore } from '@/stores'
 // 路由组件懒加载
 const HomePage = () => import('@/views/HomePage.vue')
 const LoginPage = () => import('@/views/LoginPage.vue')
-const ProteinPage = () => import('@/views/platforms/ProteinPage.vue')
 const DataInputPage = () => import('@/views/platforms/MoleculePage.vue')
 const SyntheticInputPage = () => import('@/views/platforms/SyntheticInputPage.vue')
 const UserManagementPage = () => import('@/views/UserManagementPage.vue')
+const ActivityInputPage = () => import('@/views/ActivityInput.vue')
 
 const routes = [
   {
@@ -21,12 +21,6 @@ const routes = [
     name: 'Login',
     component: LoginPage,
     meta: { requiresAuth: false }
-  },
-  {
-    path: '/platforms/protein',
-    name: 'Protein',
-    component: ProteinPage,
-    meta: { requiresAuth: true }
   },
   {
     path: '/platforms/data-input',
@@ -44,6 +38,12 @@ const routes = [
     path: '/users',
     name: 'UserManagement',
     component: UserManagementPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/platforms/activity-input',
+    name: 'ActivityInput',
+    component: ActivityInputPage,
     meta: { requiresAuth: true }
   }
 ]

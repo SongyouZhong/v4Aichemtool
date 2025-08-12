@@ -80,3 +80,13 @@ export class SyntheticApiService {
     return response.data as SyntheticRecord;
   }
 }
+
+// 创建兼容的导出，便于其他地方使用
+export const syntheticApi = {
+  getByCompound: (compoundId: string, params: { size?: number } = {}) => 
+    SyntheticApiService.getSyntheticsByCompound(compoundId, 1, params.size || 100),
+  getById: SyntheticApiService.getSynthetic,
+  create: SyntheticApiService.createSynthetic,
+  update: SyntheticApiService.updateSynthetic,
+  delete: SyntheticApiService.deleteSynthetic
+}

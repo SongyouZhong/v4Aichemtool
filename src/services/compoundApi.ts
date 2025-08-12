@@ -134,3 +134,12 @@ export class CompoundApiService {
     return response.data
   }
 }
+
+// 创建兼容的导出，便于其他地方使用
+export const compoundApi = {
+  getList: CompoundApiService.getCompounds,
+  getById: CompoundApiService.getCompound,
+  create: CompoundApiService.createCompound,
+  update: CompoundApiService.updateCompound,
+  delete: CompoundApiService.deleteCompound
+}

@@ -110,6 +110,13 @@ const smallMoleculeTools = ref<SmallMoleculeTool[]>([
     description: '用户信息管理系统，支持用户的创建、编辑、删除和查询功能。提供完整的用户生命周期管理，包括部门分组和权限管理。',
     buttonText: '进入管理',
     type: 'user-management'
+  },
+  {
+    title: '活性录入平台',
+    category: 'Activity Data Input/Management',
+    description: '活性数据录入和管理系统，支持化合物活性数据的录入、编辑和查询。包括Ki、IC50、EC50等活性类型的数据管理功能。',
+    buttonText: '录入活性',
+    type: 'activity-input'
   }
 ]);
 
@@ -121,6 +128,8 @@ const handleToolClick = (tool: SmallMoleculeTool) => {
     router.push({ name: 'SyntheticInput' });
   } else if (tool.type === 'user-management') {
     router.push({ name: 'UserManagement' });
+  } else if (tool.type === 'activity-input') {
+    router.push({ name: 'ActivityInput' });
   } else {
     router.push({ name: 'SmallMolecule', query: { tool: tool.type } });
   }

@@ -173,12 +173,98 @@
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
           >
-            <!-- 动态生成列 -->
+            <!-- 多级表头 -->
+            <ColumnGroup type="header">
+              <Row>
+                <!-- 基础信息列 - 跨行 -->
+                <Column 
+                  v-for="col in groupedVisibleColumns.basic" 
+                  :key="col.field" 
+                  :header="col.header" 
+                  :rowspan="2"
+                  :style="col.style"
+                  :frozen="col.frozen"
+                  :alignFrozen="col.alignFrozen"
+                />
+                
+                <!-- 分子描述符一级分类标题 -->
+                <Column 
+                  v-if="groupedVisibleColumns.structural.length > 0"
+                  header="分子结构" 
+                  :colspan="groupedVisibleColumns.structural.length"
+                  headerStyle="text-align: center; background-color: #e3f2fd; font-weight: bold;"
+                />
+                <Column 
+                  v-if="groupedVisibleColumns.lipinski.length > 0"
+                  header="Lipinski" 
+                  :colspan="groupedVisibleColumns.lipinski.length"
+                  headerStyle="text-align: center; background-color: #f3e5f5; font-weight: bold;"
+                />
+                <Column 
+                  v-if="groupedVisibleColumns.flexibility.length > 0"
+                  header="分子柔性和极性" 
+                  :colspan="groupedVisibleColumns.flexibility.length"
+                  headerStyle="text-align: center; background-color: #e8f5e8; font-weight: bold;"
+                />
+                <Column 
+                  v-if="groupedVisibleColumns.stereochemistry.length > 0"
+                  header="立体化学" 
+                  :colspan="groupedVisibleColumns.stereochemistry.length"
+                  headerStyle="text-align: center; background-color: #fff3e0; font-weight: bold;"
+                />
+                <Column 
+                  v-if="groupedVisibleColumns.druglikeness.length > 0"
+                  header="药物性质评价" 
+                  :colspan="groupedVisibleColumns.druglikeness.length"
+                  headerStyle="text-align: center; background-color: #fce4ec; font-weight: bold;"
+                />
+              </Row>
+              
+              <Row>
+                <!-- 分子描述符二级列标题 -->
+                <Column 
+                  v-for="col in groupedVisibleColumns.structural" 
+                  :key="col.field" 
+                  :header="col.header"
+                  :style="col.style"
+                  headerStyle="background-color: #e3f2fd;"
+                />
+                <Column 
+                  v-for="col in groupedVisibleColumns.lipinski" 
+                  :key="col.field" 
+                  :header="col.header"
+                  :style="col.style"
+                  headerStyle="background-color: #f3e5f5;"
+                />
+                <Column 
+                  v-for="col in groupedVisibleColumns.flexibility" 
+                  :key="col.field" 
+                  :header="col.header"
+                  :style="col.style"
+                  headerStyle="background-color: #e8f5e8;"
+                />
+                <Column 
+                  v-for="col in groupedVisibleColumns.stereochemistry" 
+                  :key="col.field" 
+                  :header="col.header"
+                  :style="col.style"
+                  headerStyle="background-color: #fff3e0;"
+                />
+                <Column 
+                  v-for="col in groupedVisibleColumns.druglikeness" 
+                  :key="col.field" 
+                  :header="col.header"
+                  :style="col.style"
+                  headerStyle="background-color: #fce4ec;"
+                />
+              </Row>
+            </ColumnGroup>
+
+            <!-- 数据列 -->
             <Column 
               v-for="col in visibleColumns" 
               :key="col.field" 
               :field="col.field" 
-              :header="col.header" 
               :style="col.style"
               :frozen="col.frozen"
               :alignFrozen="col.alignFrozen"
@@ -271,6 +357,79 @@
                   </span>
                   <span v-else>-</span>
                 </div>
+                
+                <!-- 分子描述符列 -->
+                <!-- 分子结构描述符 -->
+                <span v-else-if="col.field === 'maximum_graph_length'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.maximum_graph_length ?? '-' }}
+                </span>
+                <span v-else-if="col.field === 'number_of_rings'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.number_of_rings ?? '-' }}
+                </span>
+                <span v-else-if="col.field === 'number_of_aromatic_rings'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.number_of_aromatic_rings ?? '-' }}
+                </span>
+                <span v-else-if="col.field === 'number_of_aliphatic_rings'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.number_of_aliphatic_rings ?? '-' }}
+                </span>
+                <span v-else-if="col.field === 'number_atoms_in_largest_ring'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.number_atoms_in_largest_ring ?? '-' }}
+                </span>
+                
+                <!-- Lipinski规则相关描述符 -->
+                <span v-else-if="col.field === 'hba_lipinski'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.hba_lipinski ?? '-' }}
+                </span>
+                <span v-else-if="col.field === 'hbd_lipinski'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.hbd_lipinski ?? '-' }}
+                </span>
+                <span v-else-if="col.field === 'mol_weight'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.mol_weight ? slotProps.data.descriptors.mol_weight.toFixed(2) : '-' }}
+                </span>
+                <span v-else-if="col.field === 'lipinski_violations'" class="descriptor-cell">
+                  <span :class="getLipinskiViolationClass(slotProps.data.descriptors?.lipinski_violations)">
+                    {{ slotProps.data.descriptors?.lipinski_violations ?? '-' }}
+                  </span>
+                </span>
+                <span v-else-if="col.field === 'lipinski_compliant'" class="descriptor-cell">
+                  <i v-if="slotProps.data.descriptors?.lipinski_compliant === true" 
+                     class="pi pi-check-circle" 
+                     style="color: #28a745;"
+                     v-tooltip.top="'符合Lipinski规则'"
+                  ></i>
+                  <i v-else-if="slotProps.data.descriptors?.lipinski_compliant === false" 
+                     class="pi pi-times-circle" 
+                     style="color: #dc3545;"
+                     v-tooltip.top="'不符合Lipinski规则'"
+                  ></i>
+                  <span v-else>-</span>
+                </span>
+                
+                <!-- 分子柔性和极性描述符 -->
+                <span v-else-if="col.field === 'number_of_rotatable_bonds'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.number_of_rotatable_bonds ?? '-' }}
+                </span>
+                <span v-else-if="col.field === 'slog_p'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.slog_p ? slotProps.data.descriptors.slog_p.toFixed(2) : '-' }}
+                </span>
+                <span v-else-if="col.field === 'tpsa'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.tpsa ? slotProps.data.descriptors.tpsa.toFixed(2) : '-' }}
+                </span>
+                
+                <!-- 立体化学描述符 -->
+                <span v-else-if="col.field === 'number_of_stereo_centers'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.number_of_stereo_centers ?? '-' }}
+                </span>
+                
+                <!-- 药物性质评价描述符 -->
+                <span v-else-if="col.field === 'sa'" class="descriptor-cell">
+                  {{ slotProps.data.descriptors?.sa ? slotProps.data.descriptors.sa.toFixed(2) : '-' }}
+                </span>
+                <span v-else-if="col.field === 'qed'" class="descriptor-cell">
+                  <span :class="getQEDScoreClass(slotProps.data.descriptors?.qed)">
+                    {{ slotProps.data.descriptors?.qed ? slotProps.data.descriptors.qed.toFixed(3) : '-' }}
+                  </span>
+                </span>
                 
                 <!-- Create Time 列 -->
                 <span v-else-if="col.field === 'create_time'">
@@ -761,6 +920,8 @@ import { ref, onMounted, computed, nextTick } from 'vue';
 import InputText from 'primevue/inputtext';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
+import ColumnGroup from 'primevue/columngroup';
+import Row from 'primevue/row';
 import Button from 'primevue/button';
 import Dialog from 'primevue/dialog';
 import Dropdown from 'primevue/dropdown';
@@ -889,6 +1050,7 @@ interface ColumnConfig {
   required: boolean;
   frozen?: boolean;
   alignFrozen?: string;
+  category?: string;
 }
 
 const availableColumns = ref<ColumnConfig[]>([
@@ -902,6 +1064,33 @@ const availableColumns = ref<ColumnConfig[]>([
   { field: 'has_activity', header: '是否有活性', style: 'min-width: 120px', visible: true, required: false },
   { field: 'activity_summary', header: '活性汇总', style: 'min-width: 200px', visible: true, required: false },
   { field: 'attachments', header: '附件', style: 'min-width: 150px', visible: true, required: false },
+  
+  // 分子结构描述符
+  { field: 'maximum_graph_length', header: '最大图长度', style: 'min-width: 120px', visible: true, required: false, category: 'structural' },
+  { field: 'number_of_rings', header: '环数', style: 'min-width: 100px', visible: true, required: false, category: 'structural' },
+  { field: 'number_of_aromatic_rings', header: '芳香环数', style: 'min-width: 120px', visible: true, required: false, category: 'structural' },
+  { field: 'number_of_aliphatic_rings', header: '脂肪环数', style: 'min-width: 120px', visible: true, required: false, category: 'structural' },
+  { field: 'number_atoms_in_largest_ring', header: '最大环原子数', style: 'min-width: 140px', visible: true, required: false, category: 'structural' },
+  
+  // Lipinski规则相关描述符
+  { field: 'hba_lipinski', header: '氢键受体数', style: 'min-width: 120px', visible: true, required: false, category: 'lipinski' },
+  { field: 'hbd_lipinski', header: '氢键供体数', style: 'min-width: 120px', visible: true, required: false, category: 'lipinski' },
+  { field: 'mol_weight', header: '分子量', style: 'min-width: 100px', visible: true, required: false, category: 'lipinski' },
+  { field: 'lipinski_violations', header: 'Lipinski违反数', style: 'min-width: 140px', visible: true, required: false, category: 'lipinski' },
+  { field: 'lipinski_compliant', header: 'Lipinski符合性', style: 'min-width: 140px', visible: true, required: false, category: 'lipinski' },
+  
+  // 分子柔性和极性描述符
+  { field: 'number_of_rotatable_bonds', header: '可旋转键数', style: 'min-width: 120px', visible: true, required: false, category: 'flexibility' },
+  { field: 'slog_p', header: 'SlogP', style: 'min-width: 100px', visible: true, required: false, category: 'flexibility' },
+  { field: 'tpsa', header: 'TPSA', style: 'min-width: 100px', visible: true, required: false, category: 'flexibility' },
+  
+  // 立体化学描述符
+  { field: 'number_of_stereo_centers', header: '立体中心数', style: 'min-width: 120px', visible: true, required: false, category: 'stereochemistry' },
+  
+  // 药物性质评价描述符
+  { field: 'sa', header: '合成可及性', style: 'min-width: 120px', visible: true, required: false, category: 'druglikeness' },
+  { field: 'qed', header: '药物性质评分', style: 'min-width: 140px', visible: true, required: false, category: 'druglikeness' },
+  
   { field: 'create_time', header: '创建时间', style: 'min-width: 140px', visible: false, required: false },
   { field: 'creator_id', header: '创建者', style: 'min-width: 120px', visible: false, required: false },
   { field: 'project_id', header: '项目ID', style: 'min-width: 120px', visible: false, required: false },
@@ -920,6 +1109,33 @@ const defaultColumnSettings = [
   { field: 'has_activity', visible: true },
   { field: 'activity_summary', visible: true },
   { field: 'attachments', visible: true },
+  
+  // 分子结构描述符 - 默认显示部分关键指标
+  { field: 'maximum_graph_length', visible: false },
+  { field: 'number_of_rings', visible: true },
+  { field: 'number_of_aromatic_rings', visible: true },
+  { field: 'number_of_aliphatic_rings', visible: false },
+  { field: 'number_atoms_in_largest_ring', visible: false },
+  
+  // Lipinski规则相关描述符 - 显示关键药物性质
+  { field: 'hba_lipinski', visible: true },
+  { field: 'hbd_lipinski', visible: true },
+  { field: 'mol_weight', visible: true },
+  { field: 'lipinski_violations', visible: true },
+  { field: 'lipinski_compliant', visible: false },
+  
+  // 分子柔性和极性描述符
+  { field: 'number_of_rotatable_bonds', visible: true },
+  { field: 'slog_p', visible: true },
+  { field: 'tpsa', visible: false },
+  
+  // 立体化学描述符
+  { field: 'number_of_stereo_centers', visible: false },
+  
+  // 药物性质评价描述符
+  { field: 'sa', visible: false },
+  { field: 'qed', visible: true },
+  
   { field: 'create_time', visible: false },
   { field: 'creator_id', visible: false },
   { field: 'project_id', visible: false },
@@ -929,6 +1145,39 @@ const defaultColumnSettings = [
 // 计算属性：当前可见的列
 const visibleColumns = computed(() => {
   return availableColumns.value.filter(col => col.visible);
+});
+
+// 计算属性：按分类分组的可见列
+const groupedVisibleColumns = computed(() => {
+  const grouped = {
+    basic: [] as ColumnConfig[],
+    structural: [] as ColumnConfig[],
+    lipinski: [] as ColumnConfig[],
+    flexibility: [] as ColumnConfig[],
+    stereochemistry: [] as ColumnConfig[],
+    druglikeness: [] as ColumnConfig[],
+    other: [] as ColumnConfig[]
+  };
+  
+  visibleColumns.value.forEach(col => {
+    if (col.category) {
+      grouped[col.category as keyof typeof grouped].push(col);
+    } else {
+      grouped.basic.push(col);
+    }
+  });
+  
+  return grouped;
+});
+
+// 计算属性：检查是否有描述符列可见
+const hasDescriptorColumns = computed(() => {
+  const group = groupedVisibleColumns.value;
+  return group.structural.length > 0 || 
+         group.lipinski.length > 0 || 
+         group.flexibility.length > 0 || 
+         group.stereochemistry.length > 0 || 
+         group.druglikeness.length > 0;
 });
 
 // 合成优先级选项（录入时不包含"不合成"选项）
@@ -951,6 +1200,23 @@ const getPriorityLabel = (priority: number | null | undefined) => {
   if (priority === null || priority === undefined) return '-';
   const option = syntheticPriorityDisplayOptions.value.find(opt => opt.value === priority);
   return option ? option.label : `${priority}`;
+};
+
+// 获取Lipinski违反数的样式类
+const getLipinskiViolationClass = (violations: number | undefined) => {
+  if (violations === undefined) return '';
+  if (violations === 0) return 'lipinski-good';
+  if (violations <= 1) return 'lipinski-warning';
+  return 'lipinski-poor';
+};
+
+// 获取QED评分的样式类
+const getQEDScoreClass = (qed: number | undefined) => {
+  if (qed === undefined) return '';
+  if (qed >= 0.7) return 'qed-excellent';
+  if (qed >= 0.5) return 'qed-good';
+  if (qed >= 0.3) return 'qed-fair';
+  return 'qed-poor';
 };
 
 // 计算属性：验证过滤器是否有效
@@ -2779,5 +3045,100 @@ onMounted(() => {
 .cancel-btn {
   flex: 1;
   max-width: 100px;
+}
+
+/* 描述符相关样式 */
+.descriptor-cell {
+  text-align: center;
+  padding: 0.25rem 0.5rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+/* Lipinski违反数样式 */
+.lipinski-good {
+  color: #28a745;
+  font-weight: 600;
+}
+
+.lipinski-warning {
+  color: #ffc107;
+  font-weight: 600;
+}
+
+.lipinski-poor {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+/* QED评分样式 */
+.qed-excellent {
+  color: #28a745;
+  font-weight: 600;
+  background-color: #d4edda;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+.qed-good {
+  color: #155724;
+  font-weight: 500;
+  background-color: #d1ecf1;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+.qed-fair {
+  color: #856404;
+  font-weight: 500;
+  background-color: #fff3cd;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+.qed-poor {
+  color: #721c24;
+  font-weight: 600;
+  background-color: #f8d7da;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+}
+
+/* 多级表头样式 */
+.data-table ::v-deep(.p-datatable-thead > tr:first-child > th) {
+  border-bottom: 1px solid #dee2e6;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+.data-table ::v-deep(.p-datatable-thead > tr:last-child > th) {
+  border-top: none;
+  font-size: 0.85rem;
+}
+
+/* 分类表头背景色调整 */
+.data-table ::v-deep(.p-datatable-thead th[style*="background-color: #e3f2fd"]) {
+  background-color: #e3f2fd !important;
+  border-color: #bbdefb;
+}
+
+.data-table ::v-deep(.p-datatable-thead th[style*="background-color: #f3e5f5"]) {
+  background-color: #f3e5f5 !important;
+  border-color: #e1bee7;
+}
+
+.data-table ::v-deep(.p-datatable-thead th[style*="background-color: #e8f5e8"]) {
+  background-color: #e8f5e8 !important;
+  border-color: #c8e6c9;
+}
+
+.data-table ::v-deep(.p-datatable-thead th[style*="background-color: #fff3e0"]) {
+  background-color: #fff3e0 !important;
+  border-color: #ffcc02;
+}
+
+.data-table ::v-deep(.p-datatable-thead th[style*="background-color: #fce4ec"]) {
+  background-color: #fce4ec !important;
+  border-color: #f8bbd9;
 }
 </style>

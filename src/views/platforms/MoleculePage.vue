@@ -1207,23 +1207,42 @@ const validateSimilarity = () => {
 const applyFilter = async () => {
   console.log('应用过滤器:', filterOptions.value);
   
-  // 这里可以添加具体的过滤逻辑
-  // 例如调用API进行SMILES相似度搜索
-  
   try {
-    // 示例：基于SMILES和相似度过滤化合物
-    // 实际实现中需要调用后端API
-    alert(`应用过滤器:\nSMILES: ${filterOptions.value.smiles}\n相似度阈值: ${filterOptions.value.similarity}`);
+    // 调用后端相似度搜索API
+    const response = await CompoundApiService.searchSimilarCompounds({
+      target_smiles: filterOptions.value.smiles,
+      similarity_threshold: parseFloat(filterOptions.value.similarity),
+      project_id: selectedProject.value?.id
+    });
+    
+    console.log('相似度搜索结果:', response);
+    
+    // 更新表格数据为搜索结果
+    if (response.results && response.results.length > 0) {
+      // 使用搜索结果更新表格数据，确保类型兼容
+      tableData.value = response.results.map(result => ({
+        ...result,
+        name: result.name || 'Unknown', // 确保name字段不为undefined
+        description: result.description || '',
+        smiles: result.smiles || '',
+        batch: result.batch || null,
+        synthetic_priority: result.synthetic_priority || 0
+      }));
+      
+      // 显示搜索结果信息
+      alert(`相似度搜索完成！\n找到 ${response.total_found} 个相似化合物\n相似度阈值: ${response.similarity_threshold}\n目标分子: ${response.target_smiles}`);
+    } else {
+      // 没有找到相似化合物
+      tableData.value = [];
+      alert(`未找到相似度大于 ${response.similarity_threshold} 的化合物\n目标分子: ${response.target_smiles}`);
+    }
     
     // 关闭抽屉
     closeFilterDrawer();
     
-    // 刷新表格数据（这里可以传递过滤参数）
-    await loadTableData(1, 10, selectedProject.value?.id);
-    
   } catch (error) {
-    console.error('过滤失败:', error);
-    alert('过滤操作失败，请稍后重试');
+    console.error('相似度搜索失败:', error);
+    alert('相似度搜索失败，请检查输入参数或稍后重试');
   }
 };
 

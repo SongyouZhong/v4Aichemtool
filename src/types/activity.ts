@@ -8,7 +8,7 @@ export interface Activity {
   activity_relation: '>' | '<' | '=';
   activity_unit: string;
   activity_value: number;
-  batch?: string;
+  batch?: number;
   ref_activity_id?: string;
   note?: string;
 }

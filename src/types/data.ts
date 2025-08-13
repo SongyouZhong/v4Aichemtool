@@ -18,6 +18,9 @@ export interface TableRow {
   has_synthesis?: boolean; // 是否已合成
   quantity_summary?: string; // 数量汇总
   synthesis_count?: number; // 合成记录数
+  has_activity?: boolean; // 是否有活性数据
+  activity_summary?: string; // 活性数据汇总
+  activity_count?: number; // 活性记录数
 }
 
 // 主参数选项类型
@@ -70,6 +73,9 @@ export interface Compound {
   has_synthesis?: boolean; // 是否已合成
   quantity_summary?: string; // 数量汇总
   synthesis_count?: number; // 合成记录数
+  has_activity?: boolean; // 是否有活性数据
+  activity_summary?: string; // 活性数据汇总
+  activity_count?: number; // 活性记录数
 }
 
 // 创建化合物请求类型

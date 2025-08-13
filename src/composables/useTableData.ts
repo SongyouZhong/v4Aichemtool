@@ -46,7 +46,10 @@ export function useTableData() {
       attachments: [], // 暂时为空数组
       has_synthesis: compound.has_synthesis || false, // 映射是否已合成字段
       quantity_summary: compound.quantity_summary || '-', // 映射数量汇总字段
-      synthesis_count: compound.synthesis_count || 0 // 映射合成记录数字段
+      synthesis_count: compound.synthesis_count || 0, // 映射合成记录数字段
+      has_activity: compound.has_activity || false, // 映射是否有活性数据字段
+      activity_summary: compound.activity_summary || '-', // 映射活性数据汇总字段
+      activity_count: compound.activity_count || 0 // 映射活性记录数字段
     }
   }
 

@@ -240,6 +240,30 @@
                   <span v-else class="no-quantity">-</span>
                 </span>
                 
+                <!-- Has Activity 列 -->
+                <span v-else-if="col.field === 'has_activity'" class="activity-status-cell">
+                  <i v-if="slotProps.data.has_activity" 
+                     class="pi pi-check-circle activity-yes" 
+                     v-tooltip.top="'有活性数据'"
+                     style="color: #28a745; font-size: 1.2rem;"
+                  ></i>
+                  <i v-else 
+                     class="pi pi-times-circle activity-no" 
+                     v-tooltip.top="'无活性数据'"
+                     style="color: #dc3545; font-size: 1.2rem;"
+                  ></i>
+                </span>
+                
+                <!-- Activity Summary 列 -->
+                <span v-else-if="col.field === 'activity_summary'" class="activity-cell">
+                  <span v-if="slotProps.data.activity_summary && slotProps.data.activity_summary !== '-'" 
+                        class="activity-value"
+                        v-tooltip.top="`活性记录数：${slotProps.data.activity_count || 0}条`"
+                        v-html="slotProps.data.activity_summary.replace(/\n/g, '<br>')"
+                  ></span>
+                  <span v-else class="no-activity">-</span>
+                </span>
+                
                 <!-- Attachments 列 -->
                 <div v-else-if="col.field === 'attachments'" class="attachments-cell">
                   <span v-if="slotProps.data.attachments && slotProps.data.attachments.length > 0">
@@ -868,6 +892,8 @@ const availableColumns = ref<ColumnConfig[]>([
   { field: 'synthetic_priority', header: '合成优先级', style: 'min-width: 120px', visible: true, required: false },
   { field: 'has_synthesis', header: '是否已合成', style: 'min-width: 120px', visible: true, required: false },
   { field: 'quantity_summary', header: '数量汇总', style: 'min-width: 150px', visible: true, required: false },
+  { field: 'has_activity', header: '是否有活性', style: 'min-width: 120px', visible: true, required: false },
+  { field: 'activity_summary', header: '活性汇总', style: 'min-width: 200px', visible: true, required: false },
   { field: 'attachments', header: '附件', style: 'min-width: 150px', visible: true, required: false },
   { field: 'create_time', header: '创建时间', style: 'min-width: 140px', visible: false, required: false },
   { field: 'creator_id', header: '创建者', style: 'min-width: 120px', visible: false, required: false },
@@ -884,6 +910,8 @@ const defaultColumnSettings = [
   { field: 'synthetic_priority', visible: true },
   { field: 'has_synthesis', visible: true },
   { field: 'quantity_summary', visible: true },
+  { field: 'has_activity', visible: true },
+  { field: 'activity_summary', visible: true },
   { field: 'attachments', visible: true },
   { field: 'create_time', visible: false },
   { field: 'creator_id', visible: false },

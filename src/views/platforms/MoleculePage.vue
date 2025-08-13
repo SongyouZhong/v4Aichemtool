@@ -773,10 +773,12 @@ import ProjectList from '@/components/ProjectList.vue';
 import { useTableData } from '@/composables/useTableData';
 import { useProjectManagement, useFormData } from '@/composables/useProjectManagement';
 import { useKetcher } from '@/composables/useKetcher';
+import { useCompoundAggregation } from '@/composables/useCompoundAggregation';
 import type { Project } from '@/types/data';
 
 // 导入API服务
 import { CompoundApiService } from '@/services/compoundApi';
+import { SmilesApiService } from '@/services/smilesApi';
 
 // 使用组合式函数
 const {
@@ -796,8 +798,13 @@ const {
   showImageModal,
   closeImageDialog,
   downloadImage,
-  handleImageError
+  handleImageError,
+  aggregateCompoundsInfo,
+  aggregatedCompoundToTableRow
 } = useTableData();
+
+// 使用聚合功能
+const { loading: aggregationLoading } = useCompoundAggregation();
 
 const {
   mainParameterOptions,
@@ -1219,14 +1226,20 @@ const applyFilter = async () => {
     
     // 更新表格数据为搜索结果
     if (response.results && response.results.length > 0) {
-      // 使用搜索结果更新表格数据，确保类型兼容
-      tableData.value = response.results.map(result => ({
-        ...result,
-        name: result.name || 'Unknown', // 确保name字段不为undefined
+      // 1. 先聚合合成和活性信息
+      const aggregatedResults = await aggregateCompoundsInfo(response.results);
+      
+      // 2. 转换为TableRow格式，确保包含SMILES图片
+      tableData.value = aggregatedResults.map(result => ({
+        ...aggregatedCompoundToTableRow(result),
+        // 确保基础字段正确
+        name: result.name || 'Unknown',
         description: result.description || '',
         smiles: result.smiles || '',
+        smilesImage: result.smiles ? SmilesApiService.getSmilesImageUrl(result.smiles) : '',
         batch: result.batch || null,
-        synthetic_priority: result.synthetic_priority || 0
+        synthetic_priority: result.synthetic_priority || 0,
+        attachments: [] // 暂时为空数组
       }));
       
       // 显示搜索结果信息

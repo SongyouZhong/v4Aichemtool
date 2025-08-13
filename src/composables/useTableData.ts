@@ -5,6 +5,7 @@ import { ref, computed } from 'vue'
 import type { TableRow, ImageDialogData, Compound } from '@/types'
 import { CompoundApiService } from '@/services/compoundApi'
 import { SmilesApiService } from '@/services/smilesApi'
+import { useCompoundAggregation, type AggregatedCompound } from '@/composables/useCompoundAggregation'
 
 export function useTableData() {
   // 响应式数据
@@ -24,11 +25,39 @@ export function useTableData() {
     description: ''
   })
 
+  // 使用聚合功能
+  const { aggregateCompoundsInfo, loading: aggregationLoading } = useCompoundAggregation()
+
   // 计算属性
   const scrollable = computed(() => rows.value > 15)
   const scrollHeight = computed(() => rows.value > 15 ? '400px' : undefined)
 
-  // 将Compound转换为TableRow
+  // 将AggregatedCompound转换为TableRow
+  const aggregatedCompoundToTableRow = (compound: AggregatedCompound): TableRow => {
+    return {
+      id: compound.id,
+      name: compound.name || '',
+      batch: compound.batch || null,
+      smiles: compound.smiles || '',
+      smilesImage: compound.smiles ? SmilesApiService.getSmilesImageUrl(compound.smiles) : '', // 使用SMILES API生成图片URL
+      description: compound.description || '',
+      patent_issue: compound.patent_issue,
+      patent_comment: compound.patent_comment,
+      synthetic_priority: compound.synthetic_priority,
+      create_time: compound.create_time,
+      creator_id: compound.creator_id,
+      project_id: compound.project_id, // 添加项目ID
+      attachments: [], // 暂时为空数组
+      has_synthesis: compound.has_synthesis, // 使用聚合后的合成信息
+      quantity_summary: compound.quantity_summary, // 使用聚合后的数量汇总
+      synthesis_count: compound.synthesis_count, // 使用聚合后的合成记录数
+      has_activity: compound.has_activity, // 使用聚合后的活性信息
+      activity_summary: compound.activity_summary, // 使用聚合后的活性汇总
+      activity_count: compound.activity_count // 使用聚合后的活性记录数
+    }
+  }
+
+  // 将普通Compound转换为TableRow（用于基础信息显示）
   const compoundToTableRow = (compound: Compound): TableRow => {
     return {
       id: compound.id,
@@ -44,12 +73,12 @@ export function useTableData() {
       creator_id: compound.creator_id,
       project_id: compound.project_id, // 添加项目ID
       attachments: [], // 暂时为空数组
-      has_synthesis: compound.has_synthesis || false, // 映射是否已合成字段
-      quantity_summary: compound.quantity_summary || '-', // 映射数量汇总字段
-      synthesis_count: compound.synthesis_count || 0, // 映射合成记录数字段
-      has_activity: compound.has_activity || false, // 映射是否有活性数据字段
-      activity_summary: compound.activity_summary || '-', // 映射活性数据汇总字段
-      activity_count: compound.activity_count || 0 // 映射活性记录数字段
+      has_synthesis: false, // 默认值，等待聚合
+      quantity_summary: '-', // 默认值，等待聚合
+      synthesis_count: 0, // 默认值，等待聚合
+      has_activity: false, // 默认值，等待聚合
+      activity_summary: '-', // 默认值，等待聚合
+      activity_count: 0 // 默认值，等待聚合
     }
   }
 
@@ -57,23 +86,44 @@ export function useTableData() {
   const loadTableData = async (page = 1, size = 10, projectId?: string): Promise<void> => {
     loading.value = true
     try {
+      // 1. 首先获取基础化合物数据
       const response = await CompoundApiService.getCompounds({
         page,
         size,
         ...(projectId && { project_id: projectId })
       })
       
-      tableData.value = response.items.map(compoundToTableRow)
+      // 2. 聚合合成和活性信息
+      const aggregatedCompounds = await aggregateCompoundsInfo(response.items)
+      
+      // 3. 转换为TableRow格式
+      tableData.value = aggregatedCompounds.map(aggregatedCompoundToTableRow)
       total.value = response.total
       currentPage.value = response.page
       pageSize.value = response.size
       
-      console.log('Table data loaded from database:', tableData.value.length, 'items', projectId ? `for project: ${projectId}` : '(all projects)')
+      console.log('Table data loaded with aggregation:', tableData.value.length, 'items', projectId ? `for project: ${projectId}` : '(all projects)')
     } catch (error) {
-      console.error('Failed to load table data from database:', error)
-      // 如果数据库查询失败，显示空数据
-      tableData.value = []
-      total.value = 0
+      console.error('Failed to load table data:', error)
+      // 如果聚合失败，尝试只加载基础数据
+      try {
+        const response = await CompoundApiService.getCompounds({
+          page,
+          size,
+          ...(projectId && { project_id: projectId })
+        })
+        
+        tableData.value = response.items.map(compoundToTableRow)
+        total.value = response.total
+        currentPage.value = response.page
+        pageSize.value = response.size
+        
+        console.warn('Loaded basic compound data without aggregation due to error')
+      } catch (fallbackError) {
+        console.error('Failed to load even basic compound data:', fallbackError)
+        tableData.value = []
+        total.value = 0
+      }
     } finally {
       loading.value = false
     }
@@ -277,7 +327,7 @@ export function useTableData() {
     // 响应式数据
     tableData,
     rows,
-    loading,
+    loading: computed(() => loading.value || aggregationLoading.value), // 合并加载状态
     showImageDialog,
     selectedImage,
     total,
@@ -299,6 +349,10 @@ export function useTableData() {
     closeImageDialog,
     downloadImage,
     handleImageError,
-    validateSmilesImage
+    validateSmilesImage,
+    
+    // 新增：直接暴露聚合功能
+    aggregateCompoundsInfo,
+    aggregatedCompoundToTableRow
   }
 }

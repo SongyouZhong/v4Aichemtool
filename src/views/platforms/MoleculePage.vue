@@ -215,6 +215,31 @@
                   {{ getPriorityLabel(slotProps.data.synthetic_priority) }}
                 </span>
                 
+                <!-- Has Synthesis 列 -->
+                <span v-else-if="col.field === 'has_synthesis'" class="synthesis-status-cell">
+                  <i v-if="slotProps.data.has_synthesis" 
+                     class="pi pi-check-circle synthesis-yes" 
+                     v-tooltip.top="'已合成'"
+                     style="color: #28a745; font-size: 1.2rem;"
+                  ></i>
+                  <i v-else 
+                     class="pi pi-times-circle synthesis-no" 
+                     v-tooltip.top="'未合成'"
+                     style="color: #dc3545; font-size: 1.2rem;"
+                  ></i>
+                </span>
+                
+                <!-- Quantity Summary 列 -->
+                <span v-else-if="col.field === 'quantity_summary'" class="quantity-cell">
+                  <span v-if="slotProps.data.quantity_summary && slotProps.data.quantity_summary !== '-'" 
+                        class="quantity-value"
+                        v-tooltip.top="`合成记录数：${slotProps.data.synthesis_count || 0}条`"
+                  >
+                    {{ slotProps.data.quantity_summary }}
+                  </span>
+                  <span v-else class="no-quantity">-</span>
+                </span>
+                
                 <!-- Attachments 列 -->
                 <div v-else-if="col.field === 'attachments'" class="attachments-cell">
                   <span v-if="slotProps.data.attachments && slotProps.data.attachments.length > 0">
@@ -841,6 +866,8 @@ const availableColumns = ref<ColumnConfig[]>([
   { field: 'smiles', header: 'SMILES结构', style: 'min-width: 250px', visible: true, required: false },
   { field: 'description', header: '描述', style: 'min-width: 200px', visible: true, required: false },
   { field: 'synthetic_priority', header: '合成优先级', style: 'min-width: 120px', visible: true, required: false },
+  { field: 'has_synthesis', header: '是否已合成', style: 'min-width: 120px', visible: true, required: false },
+  { field: 'quantity_summary', header: '数量汇总', style: 'min-width: 150px', visible: true, required: false },
   { field: 'attachments', header: '附件', style: 'min-width: 150px', visible: true, required: false },
   { field: 'create_time', header: '创建时间', style: 'min-width: 140px', visible: false, required: false },
   { field: 'creator_id', header: '创建者', style: 'min-width: 120px', visible: false, required: false },
@@ -855,6 +882,8 @@ const defaultColumnSettings = [
   { field: 'smiles', visible: true },
   { field: 'description', visible: true },
   { field: 'synthetic_priority', visible: true },
+  { field: 'has_synthesis', visible: true },
+  { field: 'quantity_summary', visible: true },
   { field: 'attachments', visible: true },
   { field: 'create_time', visible: false },
   { field: 'creator_id', visible: false },
@@ -1826,6 +1855,57 @@ onMounted(() => {
   padding: 0.25rem 0.5rem;
   border-radius: 12px;
   font-size: 0.85rem;
+}
+
+/* 合成状态列样式 */
+.synthesis-status-cell {
+  text-align: center;
+  padding: 0.5rem;
+}
+
+.synthesis-yes {
+  color: #28a745 !important;
+  font-size: 1.2rem !important;
+}
+
+.synthesis-no {
+  color: #dc3545 !important;
+  font-size: 1.2rem !important;
+}
+
+.synthesis-yes:hover,
+.synthesis-no:hover {
+  transform: scale(1.1);
+  transition: transform 0.2s ease;
+}
+
+/* 数量汇总列样式 */
+.quantity-cell {
+  text-align: center;
+  padding: 0.25rem 0.5rem;
+}
+
+.quantity-value {
+  font-weight: 500;
+  color: #495057;
+  background-color: #e3f2fd;
+  padding: 0.25rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #bbdefb;
+  display: inline-block;
+  font-family: 'Courier New', monospace;
+  font-size: 0.85rem;
+}
+
+.quantity-value:hover {
+  background-color: #bbdefb;
+  border-color: #2196f3;
+  cursor: help;
+}
+
+.no-quantity {
+  color: #6c757d;
+  font-style: italic;
 }
 
 .action-buttons {

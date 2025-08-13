@@ -43,7 +43,10 @@ export function useTableData() {
       create_time: compound.create_time,
       creator_id: compound.creator_id,
       project_id: compound.project_id, // 添加项目ID
-      attachments: [] // 暂时为空数组
+      attachments: [], // 暂时为空数组
+      has_synthesis: compound.has_synthesis || false, // 映射是否已合成字段
+      quantity_summary: compound.quantity_summary || '-', // 映射数量汇总字段
+      synthesis_count: compound.synthesis_count || 0 // 映射合成记录数字段
     }
   }
 

@@ -682,7 +682,7 @@
             class="select-all-btn"
           />
           <Button 
-            label="重置为默认" 
+            label="重置" 
             icon="pi pi-refresh"
             severity="secondary"
             @click="resetToDefault"

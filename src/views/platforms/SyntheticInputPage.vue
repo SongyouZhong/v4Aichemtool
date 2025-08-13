@@ -361,7 +361,7 @@
             class="select-all-btn"
           />
           <Button 
-            label="重置默认" 
+            label="重置" 
             severity="secondary" 
             @click="resetToDefault"
             class="reset-btn"

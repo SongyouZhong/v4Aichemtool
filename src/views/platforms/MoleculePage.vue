@@ -194,7 +194,7 @@
                 />
                 <Column 
                   v-if="groupedVisibleColumns.lipinski.length > 0"
-                  header="Lipinski" 
+                  header="亲脂肪性" 
                   :colspan="groupedVisibleColumns.lipinski.length"
                   headerStyle="text-align: center; background-color: #f3e5f5; font-weight: bold;"
                 />
@@ -1109,33 +1109,33 @@ const availableColumns = ref<ColumnConfig[]>([
 // 默认列配置（用于重置）
 const defaultColumnSettings = [
   { field: 'name', visible: true },
-  { field: 'batch', visible: true },
+  { field: 'batch', visible: false },
   { field: 'smiles', visible: true },
   { field: 'description', visible: true },
   { field: 'synthetic_priority', visible: true },
-  { field: 'has_synthesis', visible: true },
-  { field: 'quantity_summary', visible: true },
-  { field: 'has_activity', visible: true },
-  { field: 'activity_summary', visible: true },
+  { field: 'has_synthesis', visible: false },
+  { field: 'quantity_summary', visible: false },
+  { field: 'has_activity', visible: false },
+  { field: 'activity_summary', visible: false },
   { field: 'attachments', visible: true },
   
   // 分子结构描述符 - 默认显示部分关键指标
   { field: 'maximum_graph_length', visible: false },
-  { field: 'number_of_rings', visible: true },
-  { field: 'number_of_aromatic_rings', visible: true },
+  { field: 'number_of_rings', visible: false },
+  { field: 'number_of_aromatic_rings', visible: false },
   { field: 'number_of_aliphatic_rings', visible: false },
   { field: 'number_atoms_in_largest_ring', visible: false },
   
   // Lipinski规则相关描述符 - 显示关键药物性质
-  { field: 'hba_lipinski', visible: true },
-  { field: 'hbd_lipinski', visible: true },
-  { field: 'mol_weight', visible: true },
-  { field: 'lipinski_violations', visible: true },
+  { field: 'hba_lipinski', visible: false },
+  { field: 'hbd_lipinski', visible: false },
+  { field: 'mol_weight', visible: false },
+  { field: 'lipinski_violations', visible: false },
   { field: 'lipinski_compliant', visible: false },
   
   // 分子柔性和极性描述符
-  { field: 'number_of_rotatable_bonds', visible: true },
-  { field: 'slog_p', visible: true },
+  { field: 'number_of_rotatable_bonds', visible: false },
+  { field: 'slog_p', visible: false },
   { field: 'tpsa', visible: false },
   
   // 立体化学描述符
@@ -1143,10 +1143,10 @@ const defaultColumnSettings = [
   
   // 药物性质评价描述符
   { field: 'sa', visible: false },
-  { field: 'qed', visible: true },
+  { field: 'qed', visible: false },
   
-  { field: 'create_time', visible: false },
-  { field: 'creator_id', visible: false },
+  { field: 'create_time', visible: true },
+  { field: 'creator_id', visible: true },
   { field: 'project_id', visible: false },
   { field: 'action', visible: true }
 ];

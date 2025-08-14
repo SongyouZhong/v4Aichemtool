@@ -13,7 +13,7 @@
       <!-- Small Molecule Platform -->
       <section class="small-molecule-platform">
         <div class="container section-title">
-          <h2>Small Molecule Platform</h2>
+          <h2>小分子平台</h2>
         </div>
         
         <div class="container card-container">
@@ -31,23 +31,6 @@
         </div>
       </section>
       
-      <!-- Protein Platform -->
-      <section class="protein-platform">
-        <div class="container section-title">
-          <h2>Protein Platform</h2>
-        </div>
-        
-        <div class="container">
-          <div class="platform-preview">
-            <p>Protein platform tools coming soon...</p>
-            <Button 
-              label="Explore Protein Platform" 
-              @click="navigateToProtein"
-              size="large"
-            />
-          </div>
-        </div>
-      </section>
     </main>
   </div>
 </template>
@@ -62,64 +45,37 @@ import type { SmallMoleculeTool } from '@/types';
 const router = useRouter();
 
 const smallMoleculeTools = ref<SmallMoleculeTool[]>([
+
   {
-    title: 'Database explorer',
-    category: 'ChEMBL/pdbBank/BindingDB/Enamine',
-    description: 'Chemical databases serve as powerful tools in drug discovery. These databases facilitate virtual screening, drug repurposing, and computational efficiency.',
-    buttonText: 'Explore now',
-    type: 'database'
-  },
-  {
-    title: 'Ligand-based AI generation',
-    category: 'Analog generation/Scaffold-hopping',
-    description: 'Ligand-based drug design involves designing new molecules based on the information provided by known active compounds. It\'s also known as pharmacophore-based or indirect drug design.',
-    buttonText: 'Explore now',
-    type: 'ligand-generation'
-  },
-  {
-    title: 'Pocket-based AI generation',
-    category: 'De novo generation/Hit discovery',
-    description: 'Pocket-based AI generation is a novel approach that leverages small, self-contained neural networks to generate creative content.',
-    buttonText: 'Explore now',
-    type: 'pocket-generation'
-  },
-  {
-    title: 'Interactive design',
-    category: 'Draw/Docking/Prediction',
-    description: 'Molecular docking plays a pivotal role in drug discovery by predicting how small molecules (ligands) interact with target proteins.',
-    buttonText: 'Explore now',
-    type: 'interactive-design'
-  },
-  {
-    title: '化合物录入平台',
+    title: '化合物录入模块',
     category: 'Data Management/Input/Analysis',
     description: 'Comprehensive data input and management platform for chemical and molecular data. Features customizable input forms and structured data tables for efficient data organization.',
     buttonText: 'Access Platform',
     type: 'data-input'
   },
   {
-    title: '合成录入平台',
+    title: '合成录入模块',
     category: '合成结果数据录入',
     description: 'Comprehensive data input and management platform for chemical and molecular data. Features customizable input forms and structured data tables for efficient data organization.',
     buttonText: 'Access Platform',
     type: 'synthetic-input'
   },
+  // {
+  //   title: '用户管理模块',
+  //   category: 'User Management/Administration',
+  //   description: '用户信息管理系统，支持用户的创建、编辑、删除和查询功能。提供完整的用户生命周期管理，包括部门分组和权限管理。',
+  //   buttonText: '进入管理',
+  //   type: 'user-management'
+  // },
   {
-    title: '用户管理平台',
-    category: 'User Management/Administration',
-    description: '用户信息管理系统，支持用户的创建、编辑、删除和查询功能。提供完整的用户生命周期管理，包括部门分组和权限管理。',
-    buttonText: '进入管理',
-    type: 'user-management'
-  },
-  {
-    title: '活性录入平台',
+    title: '活性录入模块',
     category: 'Activity Data Input/Management',
     description: '活性数据录入和管理系统，支持化合物活性数据的录入、编辑和查询。包括Ki、IC50、EC50等活性类型的数据管理功能。',
     buttonText: '录入活性',
     type: 'activity-input'
   },
   {
-    title: '检测方法管理',
+    title: '检测方法管理模块',
     category: 'Assay Management/Configuration',
     description: '检测方法管理系统，支持检测方法的创建、编辑、删除和查询功能。为活性数据录入提供检测方法配置支持。',
     buttonText: '管理检测方法',

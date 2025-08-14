@@ -2,9 +2,10 @@
 // 封装表格数据操作的逻辑
 
 import { ref, computed } from 'vue'
-import type { TableRow, ImageDialogData, Compound } from '@/types'
+import type { TableRow, ImageDialogData, Compound, MolecularDescriptors } from '@/types'
 import { CompoundApiService } from '@/services/compoundApi'
 import { SmilesApiService } from '@/services/smilesApi'
+import { DescriptorApiService } from '@/services/descriptorApi'
 import { useCompoundAggregation, type AggregatedCompound } from '@/composables/useCompoundAggregation'
 
 export function useTableData() {
@@ -32,8 +33,73 @@ export function useTableData() {
   const scrollable = computed(() => rows.value > 15)
   const scrollHeight = computed(() => rows.value > 15 ? '400px' : undefined)
 
-  // 将AggregatedCompound转换为TableRow
-  const aggregatedCompoundToTableRow = (compound: AggregatedCompound): TableRow => {
+  // 批量获取分子描述符
+  const aggregateDescriptors = async (compounds: AggregatedCompound[]): Promise<AggregatedCompound[]> => {
+    try {
+      // 提取所有有效的SMILES
+      const smilesData = compounds
+        .filter(compound => compound.smiles && compound.smiles.trim())
+        .map(compound => ({ 
+          id: compound.id, 
+          smiles: compound.smiles!.trim() 
+        }))
+
+      if (smilesData.length === 0) {
+        return compounds
+      }
+
+      // 批量获取描述符
+      const smilesList = smilesData.map(item => item.smiles)
+      const descriptors = await DescriptorApiService.getBatchDescriptors(smilesList)
+
+      // 创建SMILES到描述符的映射
+      const descriptorMap = new Map<string, MolecularDescriptors>()
+      descriptors.forEach(desc => {
+        if (desc.smiles) {
+          descriptorMap.set(desc.smiles, {
+            // 分子结构描述符
+            maximum_graph_length: desc.maximum_graph_length,
+            number_of_rings: desc.number_of_rings,
+            number_of_aromatic_rings: desc.number_of_aromatic_rings,
+            number_of_aliphatic_rings: desc.number_of_aliphatic_rings,
+            number_atoms_in_largest_ring: desc.number_atoms_in_largest_ring,
+            // Lipinski规则相关描述符
+            hba_lipinski: desc.hba_lipinski,
+            hbd_lipinski: desc.hbd_lipinski,
+            mol_weight: desc.mol_weight,
+            lipinski_violations: desc.lipinski_violations,
+            lipinski_compliant: desc.lipinski_compliant,
+            // 分子柔性和极性描述符
+            number_of_rotatable_bonds: desc.number_of_rotatable_bonds,
+            slog_p: desc.slog_p,
+            tpsa: desc.tpsa,
+            // 立体化学描述符
+            number_of_stereo_centers: desc.number_of_stereo_centers,
+            // 药物性质评价描述符
+            sa: desc.sa,
+            qed: desc.qed
+          })
+        }
+      })
+
+      // 将描述符附加到化合物数据
+      const result = compounds.map(compound => ({
+        ...compound,
+        descriptors: compound.smiles ? descriptorMap.get(compound.smiles.trim()) : undefined
+      }))
+
+      console.log(`Successfully aggregated descriptors for ${descriptors.length} compounds`)
+      return result
+
+    } catch (error) {
+      console.error('Failed to aggregate descriptors:', error)
+      // 如果描述符聚合失败，返回原始数据
+      return compounds
+    }
+  }
+
+  // 将AggregatedCompound转换为TableRow（增强版，包含描述符）
+  const aggregatedCompoundToTableRow = (compound: AggregatedCompound & { descriptors?: MolecularDescriptors }): TableRow => {
     return {
       id: compound.id,
       name: compound.name || '',
@@ -53,7 +119,8 @@ export function useTableData() {
       synthesis_count: compound.synthesis_count, // 使用聚合后的合成记录数
       has_activity: compound.has_activity, // 使用聚合后的活性信息
       activity_summary: compound.activity_summary, // 使用聚合后的活性汇总
-      activity_count: compound.activity_count // 使用聚合后的活性记录数
+      activity_count: compound.activity_count, // 使用聚合后的活性记录数
+      descriptors: compound.descriptors // 添加分子描述符
     }
   }
 
@@ -96,13 +163,16 @@ export function useTableData() {
       // 2. 聚合合成和活性信息
       const aggregatedCompounds = await aggregateCompoundsInfo(response.items)
       
-      // 3. 转换为TableRow格式
-      tableData.value = aggregatedCompounds.map(aggregatedCompoundToTableRow)
+      // 3. 聚合分子描述符信息
+      const compoundsWithDescriptors = await aggregateDescriptors(aggregatedCompounds)
+      
+      // 4. 转换为TableRow格式
+      tableData.value = compoundsWithDescriptors.map(aggregatedCompoundToTableRow)
       total.value = response.total
       currentPage.value = response.page
       pageSize.value = response.size
       
-      console.log('Table data loaded with aggregation:', tableData.value.length, 'items', projectId ? `for project: ${projectId}` : '(all projects)')
+      console.log('Table data loaded with full aggregation (synthesis, activity, descriptors):', tableData.value.length, 'items', projectId ? `for project: ${projectId}` : '(all projects)')
     } catch (error) {
       console.error('Failed to load table data:', error)
       // 如果聚合失败，尝试只加载基础数据

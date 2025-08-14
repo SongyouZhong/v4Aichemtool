@@ -176,15 +176,13 @@
             <!-- 多级表头 -->
             <ColumnGroup type="header">
               <Row>
-                <!-- 基础信息列 - 跨行 -->
+                <!-- 基础信息列 - 跨行（除了操作列，它需要特殊处理） -->
                 <Column 
-                  v-for="col in groupedVisibleColumns.basic" 
+                  v-for="col in groupedVisibleColumns.basic.filter(c => c.field !== 'action')" 
                   :key="col.field" 
                   :header="col.header" 
-                  :rowspan="2"
+                  :rowspan="hasDescriptorColumns ? 2 : 1"
                   :style="col.style"
-                  :frozen="col.frozen"
-                  :alignFrozen="col.alignFrozen"
                 />
                 
                 <!-- 分子描述符一级分类标题 -->
@@ -218,9 +216,20 @@
                   :colspan="groupedVisibleColumns.druglikeness.length"
                   headerStyle="text-align: center; background-color: #fce4ec; font-weight: bold;"
                 />
+                
+                <!-- 操作列 - 跨行 -->
+                <Column 
+                  v-if="groupedVisibleColumns.basic.find(c => c.field === 'action')"
+                  header="操作" 
+                  :rowspan="hasDescriptorColumns ? 2 : 1"
+                  :style="groupedVisibleColumns.basic.find(c => c.field === 'action')?.style"
+                  :frozen="groupedVisibleColumns.basic.find(c => c.field === 'action')?.frozen"
+                  :alignFrozen="groupedVisibleColumns.basic.find(c => c.field === 'action')?.alignFrozen"
+                />
               </Row>
               
-              <Row>
+              <!-- 第二行：只有在有描述符列时才显示 -->
+              <Row v-if="hasDescriptorColumns">
                 <!-- 分子描述符二级列标题 -->
                 <Column 
                   v-for="col in groupedVisibleColumns.structural" 

@@ -1,5 +1,30 @@
 // 数据相关的类型定义
 
+// 分子描述符类型定义
+export interface MolecularDescriptors {
+  // 分子结构描述符
+  maximum_graph_length?: number;
+  number_of_rings?: number;
+  number_of_aromatic_rings?: number;
+  number_of_aliphatic_rings?: number;
+  number_atoms_in_largest_ring?: number;
+  // Lipinski规则相关描述符
+  hba_lipinski?: number;
+  hbd_lipinski?: number;
+  mol_weight?: number;
+  lipinski_violations?: number;
+  lipinski_compliant?: boolean;
+  // 分子柔性和极性描述符
+  number_of_rotatable_bonds?: number;
+  slog_p?: number;
+  tpsa?: number;
+  // 立体化学描述符
+  number_of_stereo_centers?: number;
+  // 药物性质评价描述符
+  sa?: number;
+  qed?: number;
+}
+
 // 表格行数据类型（基于Compound模型）
 export interface TableRow {
   id: string;
@@ -21,6 +46,7 @@ export interface TableRow {
   has_activity?: boolean; // 是否有活性数据
   activity_summary?: string; // 活性数据汇总
   activity_count?: number; // 活性记录数
+  descriptors?: MolecularDescriptors; // 添加分子描述符
 }
 
 // 主参数选项类型

@@ -1,10 +1,25 @@
 // API配置文件
 // 配置后端API的基础URL和相关设置
 
+// 获取当前主机的IP地址，用于局域网访问
+const getCurrentHost = (): string => {
+  // 在开发环境中，如果是localhost，保持localhost
+  // 如果是局域网IP访问，使用相同的主机地址
+  const hostname = window.location.hostname;
+  
+  // 如果是localhost或127.0.0.1，使用localhost
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'localhost';
+  }
+  
+  // 否则使用当前访问的主机名（支持局域网IP）
+  return hostname;
+};
+
 // API基础配置
 export const API_CONFIG = {
-  // 后端API基础URL
-  BASE_URL: 'http://localhost:8000/api/v1',
+  // 后端API基础URL - 动态获取主机地址
+  BASE_URL: `http://${getCurrentHost()}:8000/api/v1`,
   
   // 请求超时时间（毫秒）
   TIMEOUT: 10000,

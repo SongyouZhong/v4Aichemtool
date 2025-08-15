@@ -2138,12 +2138,10 @@ onMounted(() => {
 .smiles-text {
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.8rem;
+  color: #495057;
   word-break: break-all;
-  max-width: 200px;
-  display: inline-block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: block;
+  max-width: 100%;
 }
 
 .smiles-image-container {
@@ -2154,8 +2152,8 @@ onMounted(() => {
 }
 
 .smiles-image {
-  max-width: 120px;
-  max-height: 60px;
+  max-width: 180px;
+  max-height: 120px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
@@ -2173,6 +2171,13 @@ onMounted(() => {
 }
 
 .no-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 180px;
+  height: 120px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
   color: #666;
   font-style: italic;
   font-size: 0.8rem;
@@ -2302,29 +2307,28 @@ onMounted(() => {
 }
 
 .smiles-image-section .smiles-image {
-  max-width: 120px;
-  max-height: 60px;
+  max-width: 180px;
+  max-height: 120px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
 }
 
 .smiles-image-section .no-image {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 180px;
+  height: 120px;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
   color: #666;
   font-style: italic;
   font-size: 0.8rem;
 }
 
 .smiles-text-section {
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 30px;
-  background: #f8f9fa;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  padding: 0.25rem 0.5rem;
+  text-align: center;
 }
 
 .smiles-text-section .smiles-text {
@@ -3042,18 +3046,6 @@ onMounted(() => {
   min-width: 100px;
   height: 2.5rem;
   font-size: 0.9rem;
-}
-
-.select-all-btn,
-.reset-btn {
-  flex: 1;
-  max-width: 120px;
-}
-
-.apply-btn,
-.cancel-btn {
-  flex: 1;
-  max-width: 100px;
 }
 
 /* 描述符相关样式 */

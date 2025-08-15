@@ -1,7 +1,7 @@
 <template>
   <div class="synthetic-input-page">
     <div class="container">
-      <h1 class="page-title">合成录入平台</h1>
+      <h1 class="page-title">合成录入</h1>
       
       <!-- 项目选择区域 -->
       <div class="project-selection-section">
@@ -165,29 +165,6 @@
             >
               <template #body="{ data }">
                 <span class="create-time">{{ formatDateTime(data.create_time) }}</span>
-              </template>
-            </Column>
-
-            <!-- 操作列 -->
-            <Column 
-              v-if="isColumnVisible('action')"
-              field="action" 
-              header="操作" 
-              :style="getColumnStyle('action')"
-              :frozen="isColumnFrozen('action')"
-              :alignFrozen="getColumnAlign('action')"
-            >
-              <template #body="{ data }">
-                <div class="action-buttons">
-                  <Button
-                    icon="pi pi-pencil"
-                    severity="info"
-                    size="small"
-                    @click="editCompound(data)"
-                    class="action-btn edit-btn"
-                    v-tooltip.top="'编辑'"
-                  />
-                </div>
               </template>
             </Column>
 
@@ -624,7 +601,6 @@ const availableColumns = ref<ColumnConfig[]>([
   { field: 'synthetic_priority', header: '合成优先级', style: 'min-width: 120px', visible: true, required: false },
   { field: 'description', header: '描述', style: 'min-width: 200px', visible: true, required: false },
   { field: 'create_time', header: '创建时间', style: 'min-width: 140px', visible: true, required: false },
-  { field: 'action', header: '操作', style: 'min-width: 120px', visible: true, required: true, frozen: true, alignFrozen: 'right' }
 ]);
 
 // 默认列配置
@@ -1204,8 +1180,8 @@ onMounted(() => {
 }
 
 .smiles-image {
-  max-width: 120px;
-  max-height: 80px;
+  max-width: 180px;
+  max-height: 120px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background-color: #fff;
@@ -1226,8 +1202,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 120px;
-  height: 80px;
+  width: 180px;
+  height: 120px;
   border: 1px dashed #ccc;
   border-radius: 4px;
   color: #666;

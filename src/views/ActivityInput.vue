@@ -1,7 +1,7 @@
 <template>
   <div class="activity-input-container">
     <div class="page-header">
-      <h1>活性录入平台</h1>
+      <h1>活性录入</h1>
       <p>录入和管理化合物活性数据</p>
     </div>
 

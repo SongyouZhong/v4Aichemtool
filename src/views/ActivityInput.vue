@@ -166,13 +166,15 @@
 
               <!-- 是否是参照分子 -->
               <div class="form-group">
-                <label for="is-reference">是否是参照分子</label>
-                <Checkbox
-                  id="is-reference"
-                  v-model="formData.is_reference"
-                  binary
-                  class="form-checkbox"
-                />
+                <div class="checkbox-group">
+                  <Checkbox
+                    id="is-reference"
+                    v-model="formData.is_reference"
+                    binary
+                    class="form-checkbox"
+                  />
+                  <label for="is-reference" class="checkbox-label">是否是参照分子</label>
+                </div>
                 <small class="form-help">勾选表示该化合物是参照分子</small>
               </div>
 
@@ -477,6 +479,7 @@ import Button from 'primevue/button';
 import DataTable from 'primevue/datatable';
 import Column from 'primevue/column';
 import Dialog from 'primevue/dialog';
+import Checkbox from 'primevue/checkbox';
 
 import { activityApi } from '@/services/activityApi';
 import { assayApi } from '@/services/assayApi';
@@ -1120,6 +1123,20 @@ const loadActivityColumnSettings = () => {
 
 .form-checkbox {
   margin-bottom: 0.5rem;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.checkbox-label {
+  margin: 0;
+  color: #495057;
+  font-weight: 600;
+  cursor: pointer;
 }
 
 .form-help {

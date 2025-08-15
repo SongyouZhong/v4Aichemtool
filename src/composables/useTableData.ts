@@ -12,7 +12,6 @@ import { useCompoundAggregation, type AggregatedCompound } from '@/composables/u
 export function useTableData() {
   // 响应式数据
   const tableData = ref<TableRow[]>([])
-  const rows = ref(15)
   const loading = ref(false)
   const total = ref(0)
   const currentPage = ref(1)
@@ -46,8 +45,8 @@ export function useTableData() {
   }
 
   // 计算属性
-  const scrollable = computed(() => rows.value > 15)
-  const scrollHeight = computed(() => rows.value > 15 ? '400px' : undefined)
+  const scrollable = computed(() => pageSize.value > 15)
+  const scrollHeight = computed(() => pageSize.value > 15 ? '400px' : undefined)
 
   // 批量获取分子描述符
   const aggregateDescriptors = async (compounds: AggregatedCompound[]): Promise<AggregatedCompound[]> => {
@@ -426,7 +425,6 @@ export function useTableData() {
   return {
     // 响应式数据
     tableData,
-    rows,
     loading: computed(() => loading.value || aggregationLoading.value), // 合并加载状态
     showImageDialog,
     selectedImage,

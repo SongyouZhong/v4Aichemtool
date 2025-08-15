@@ -162,9 +162,11 @@
         <div class="table-container">
           <DataTable 
             :value="tableData" 
-            :rows="rows"
+            :rows="pageSize"
             :rowsPerPageOptions="[10, 15, 20, 30, 50]"
             :paginator="true"
+            :lazy="true"
+            :totalRecords="total"
             :scrollable="scrollable"
             :scrollHeight="scrollHeight"
             tableStyle="min-width: 80rem"
@@ -172,6 +174,7 @@
             responsiveLayout="scroll"
             currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
             paginatorTemplate="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+            @page="onPageChange"
           >
             <!-- 多级表头 -->
             <ColumnGroup type="header">
@@ -953,7 +956,9 @@ import { SmilesApiService } from '@/services/smilesApi';
 // 使用组合式函数
 const {
   tableData,
-  rows,
+  total,
+  currentPage,
+  pageSize,
   loading: tableLoading,
   showImageDialog,
   selectedImage,
@@ -1238,6 +1243,19 @@ const isFilterValid = computed(() => {
 });
 
 // 业务逻辑方法
+// 分页事件处理
+const onPageChange = async (event: any) => {
+  console.log('Page change event:', event);
+  const newPage = event.page + 1; // PrimeVue 分页器是从 0 开始的
+  const newSize = event.rows;
+  
+  // 更新分页状态
+  pageSize.value = newSize;
+  
+  // 使用当前选中的项目ID加载数据
+  await loadTableData(newPage, newSize, selectedProject.value?.id, true);
+};
+
 const handleSave = () => {
   console.log('Save clicked');
   // 先获取最新的SMILES数据，然后显示确认对话框
@@ -1245,7 +1263,7 @@ const handleSave = () => {
 };
 
 const handleRefreshTable = async () => {
-  await loadTableData(1, 10, selectedProject.value?.id, true); // 包含不合成的化合物
+  await loadTableData(currentPage.value, pageSize.value, selectedProject.value?.id, true); // 包含不合成的化合物
 };
 
 const handleValidate = () => {
@@ -1303,8 +1321,8 @@ const handleSelectProject = async (project: Project) => {
   if (!selectedProject.value) {
     selectedProject.value = project;
     inputs.value.mainParameter = project.id;
-    // 加载该项目的化合物数据（包含不合成的化合物）
-    await loadTableData(1, 10, project.id, true);
+    // 加载该项目的化合物数据（重置到第一页）
+    await loadTableData(1, pageSize.value, project.id, true);
     return;
   }
   
@@ -1337,8 +1355,8 @@ const confirmSwitch = async () => {
     inputs.value.mainParameter = pendingProject.value.id;
     console.log('Switched to project:', pendingProject.value);
     
-    // 重新加载表格数据以显示新项目的化合物（包含不合成的化合物）
-    await loadTableData(1, 10, pendingProject.value.id, true);
+    // 重新加载表格数据以显示新项目的化合物（重置到第一页）
+    await loadTableData(1, pageSize.value, pendingProject.value.id, true);
   }
   closeSwitchDialog();
 };
@@ -1540,8 +1558,8 @@ const clearFilter = async () => {
   filterOptions.value.similarity = '';
   similarityError.value = '';
   
-  // 重新加载所有数据（包含不合成的化合物）
-  await loadTableData(1, 10, selectedProject.value?.id, true);
+  // 重新加载所有数据（重置到第一页）
+  await loadTableData(1, pageSize.value, selectedProject.value?.id, true);
   
   alert('过滤器已清除');
 };
@@ -1811,7 +1829,7 @@ const initialize = async () => {
   ]);
   
   // 默认加载所有化合物数据（不依赖项目筛选，包含不合成的化合物）
-  await loadTableData(1, 10, undefined, true);
+  await loadTableData(currentPage.value, pageSize.value, undefined, true);
   
   console.log('Application initialized');
 };

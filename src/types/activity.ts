@@ -3,13 +3,13 @@ export interface Activity {
   compound_id: string;
   project_id: string;
   synthetic_name?: string;
-  assay_id: string;
+  assay_id?: string;  // 改为可选
   activity_type: 'Ki' | 'IC50' | 'EC50';
   activity_relation: '>' | '<' | '=';
   activity_unit: string;
   activity_value: number;
   batch?: number;
-  ref_activity_id?: string;
+  is_reference?: boolean;  // 替换ref_activity_id
   note?: string;
 }
 

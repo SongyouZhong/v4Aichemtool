@@ -75,7 +75,7 @@
 
               <!-- 检测方法ID -->
               <div class="form-group">
-                <label for="assay">检测方法ID *</label>
+                <label for="assay">检测方法</label>
                 <Dropdown
                   id="assay"
                   v-model="formData.assay_id"
@@ -84,9 +84,7 @@
                   option-value="id"
                   placeholder="请选择检测方法"
                   class="form-input"
-                  :class="{ 'p-invalid': errors.assay_id }"
                 />
-                <small v-if="errors.assay_id" class="p-error">{{ errors.assay_id }}</small>
               </div>
 
               <!-- 活性类型 -->
@@ -166,18 +164,16 @@
                 />
               </div>
 
-              <!-- 参考活性ID -->
+              <!-- 是否是参照分子 -->
               <div class="form-group">
-                <label for="ref-activity">参考活性ID</label>
-                <Dropdown
-                  id="ref-activity"
-                  v-model="formData.ref_activity_id"
-                  :options="referenceActivities"
-                  option-label="displayName"
-                  option-value="id"
-                  placeholder="请选择参考活性"
-                  class="form-input"
+                <label for="is-reference">是否是参照分子</label>
+                <Checkbox
+                  id="is-reference"
+                  v-model="formData.is_reference"
+                  binary
+                  class="form-checkbox"
                 />
+                <small class="form-help">勾选表示该化合物是参照分子</small>
               </div>
 
               <!-- 备注 -->
@@ -505,7 +501,6 @@ const projects = ref<Project[]>([]);
 const compounds = ref<Compound[]>([]);
 const synthetics = ref<Synthetic[]>([]);
 const assays = ref<Assay[]>([]);
-const referenceActivities = ref<any[]>([]);
 const isSubmitting = ref(false);
 const currentSmiles = ref<string>('');
 
@@ -528,7 +523,7 @@ const formData = ref<ActivityCreate>({
   activity_unit: 'nM',
   activity_value: 0,
   batch: undefined,
-  ref_activity_id: '',
+  is_reference: false,  // 替换ref_activity_id
   note: ''
 });
 
@@ -716,10 +711,6 @@ const validateForm = (): boolean => {
     errors.value.compound_id = '请选择化合物';
   }
   
-  if (!formData.value.assay_id) {
-    errors.value.assay_id = '请选择检测方法';
-  }
-  
   if (!formData.value.activity_type) {
     errors.value.activity_type = '请选择活性类型';
   }
@@ -794,7 +785,7 @@ const resetForm = () => {
     activity_unit: 'nM',
     activity_value: 0,
     batch: undefined,
-    ref_activity_id: '',
+    is_reference: false,
     note: ''
   };
   errors.value = {};
@@ -1125,6 +1116,17 @@ const loadActivityColumnSettings = () => {
 
 .form-input {
   width: 100%;
+}
+
+.form-checkbox {
+  margin-bottom: 0.5rem;
+}
+
+.form-help {
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: block;
 }
 
 .p-error {

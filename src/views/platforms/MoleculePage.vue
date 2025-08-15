@@ -71,7 +71,7 @@
         </div>          <!-- 第2行：2个输入框 -->
           <div class="input-row row-2">
             <div class="input-item">
-              <label for="input2">化合物名称:</label>
+              <label for="input2">化合物名称*:</label>
               <InputText v-model="inputs.compoundName" id="input2" placeholder="Enter compound name" />
             </div>
             <div class="input-item">
@@ -83,13 +83,13 @@
           <!-- 第3行：SMILES输入框和Set SMILES按钮 -->
           <div class="input-row row-3">
             <div class="input-item smiles-input-container">
-              <label for="input4">SMILES:</label>
+              <label for="input4">SMILES*:</label>
               <InputText v-model="inputs.compoundSmiles" id="input4" placeholder="Enter SMILES or use 'Get SMILES' button" />
               <small class="field-help">Type SMILES (e.g., CCO for ethanol) then click "Set SMILES" button</small>
             </div>
             <div class="smiles-set-button">
               <Button 
-                label="Set SMILES" 
+                label="显示结构" 
                 size="small" 
                 severity="info"
                 @click="setSmilesFromInput"
@@ -1069,41 +1069,41 @@ interface ColumnConfig {
 
 const availableColumns = ref<ColumnConfig[]>([
   { field: 'name', header: '化合物名称', style: 'min-width: 150px', visible: true, required: true },
-  { field: 'batch', header: '批次', style: 'min-width: 120px', visible: true, required: false },
+  { field: 'batch', header: '批次', style: 'min-width: 120px', visible: false, required: false },
   { field: 'smiles', header: 'SMILES结构', style: 'min-width: 250px', visible: true, required: false },
   { field: 'description', header: '描述', style: 'min-width: 200px', visible: true, required: false },
   { field: 'synthetic_priority', header: '合成优先级', style: 'min-width: 120px', visible: true, required: false },
-  { field: 'has_synthesis', header: '是否已合成', style: 'min-width: 120px', visible: true, required: false },
-  { field: 'quantity_summary', header: '数量汇总', style: 'min-width: 150px', visible: true, required: false },
-  { field: 'has_activity', header: '是否有活性', style: 'min-width: 120px', visible: true, required: false },
-  { field: 'activity_summary', header: '活性汇总', style: 'min-width: 200px', visible: true, required: false },
+  { field: 'has_synthesis', header: '是否已合成', style: 'min-width: 120px', visible: false, required: false },
+  { field: 'quantity_summary', header: '数量汇总', style: 'min-width: 150px', visible: false, required: false },
+  { field: 'has_activity', header: '是否有活性', style: 'min-width: 120px', visible: false, required: false },
+  { field: 'activity_summary', header: '活性汇总', style: 'min-width: 200px', visible: false, required: false },
   { field: 'attachments', header: '附件', style: 'min-width: 150px', visible: true, required: false },
   
   // 分子结构描述符
-  { field: 'maximum_graph_length', header: '最大图长度', style: 'min-width: 120px', visible: true, required: false, category: 'structural' },
-  { field: 'number_of_rings', header: '环数', style: 'min-width: 100px', visible: true, required: false, category: 'structural' },
-  { field: 'number_of_aromatic_rings', header: '芳香环数', style: 'min-width: 120px', visible: true, required: false, category: 'structural' },
-  { field: 'number_of_aliphatic_rings', header: '脂肪环数', style: 'min-width: 120px', visible: true, required: false, category: 'structural' },
-  { field: 'number_atoms_in_largest_ring', header: '最大环原子数', style: 'min-width: 140px', visible: true, required: false, category: 'structural' },
+  { field: 'maximum_graph_length', header: '最大图长度', style: 'min-width: 120px', visible: false, required: false, category: 'structural' },
+  { field: 'number_of_rings', header: '环数', style: 'min-width: 100px', visible: false, required: false, category: 'structural' },
+  { field: 'number_of_aromatic_rings', header: '芳香环数', style: 'min-width: 120px', visible: false, required: false, category: 'structural' },
+  { field: 'number_of_aliphatic_rings', header: '脂肪环数', style: 'min-width: 120px', visible: false, required: false, category: 'structural' },
+  { field: 'number_atoms_in_largest_ring', header: '最大环原子数', style: 'min-width: 140px', visible: false, required: false, category: 'structural' },
   
   // Lipinski规则相关描述符
-  { field: 'hba_lipinski', header: '氢键受体数', style: 'min-width: 120px', visible: true, required: false, category: 'lipinski' },
-  { field: 'hbd_lipinski', header: '氢键供体数', style: 'min-width: 120px', visible: true, required: false, category: 'lipinski' },
-  { field: 'mol_weight', header: '分子量', style: 'min-width: 100px', visible: true, required: false, category: 'lipinski' },
-  { field: 'lipinski_violations', header: 'Lipinski违反数', style: 'min-width: 140px', visible: true, required: false, category: 'lipinski' },
-  { field: 'lipinski_compliant', header: 'Lipinski符合性', style: 'min-width: 140px', visible: true, required: false, category: 'lipinski' },
+  { field: 'hba_lipinski', header: '氢键受体数', style: 'min-width: 120px', visible: false, required: false, category: 'lipinski' },
+  { field: 'hbd_lipinski', header: '氢键供体数', style: 'min-width: 120px', visible: false, required: false, category: 'lipinski' },
+  { field: 'mol_weight', header: '分子量', style: 'min-width: 100px', visible: false, required: false, category: 'lipinski' },
+  { field: 'lipinski_violations', header: 'Lipinski违反数', style: 'min-width: 140px', visible: false, required: false, category: 'lipinski' },
+  { field: 'lipinski_compliant', header: 'Lipinski符合性', style: 'min-width: 140px', visible: false, required: false, category: 'lipinski' },
   
   // 分子柔性和极性描述符
-  { field: 'number_of_rotatable_bonds', header: '可旋转键数', style: 'min-width: 120px', visible: true, required: false, category: 'flexibility' },
-  { field: 'slog_p', header: 'SlogP', style: 'min-width: 100px', visible: true, required: false, category: 'flexibility' },
-  { field: 'tpsa', header: 'TPSA', style: 'min-width: 100px', visible: true, required: false, category: 'flexibility' },
+  { field: 'number_of_rotatable_bonds', header: '可旋转键数', style: 'min-width: 120px', visible: false, required: false, category: 'flexibility' },
+  { field: 'slog_p', header: 'SlogP', style: 'min-width: 100px', visible: false, required: false, category: 'flexibility' },
+  { field: 'tpsa', header: 'TPSA', style: 'min-width: 100px', visible: false, required: false, category: 'flexibility' },
   
   // 立体化学描述符
-  { field: 'number_of_stereo_centers', header: '立体中心数', style: 'min-width: 120px', visible: true, required: false, category: 'stereochemistry' },
+  { field: 'number_of_stereo_centers', header: '立体中心数', style: 'min-width: 120px', visible: false, required: false, category: 'stereochemistry' },
   
   // 药物性质评价描述符
-  { field: 'sa', header: '合成可及性', style: 'min-width: 120px', visible: true, required: false, category: 'druglikeness' },
-  { field: 'qed', header: '药物性质评分', style: 'min-width: 140px', visible: true, required: false, category: 'druglikeness' },
+  { field: 'sa', header: '合成可及性', style: 'min-width: 120px', visible: false, required: false, category: 'druglikeness' },
+  { field: 'qed', header: '药物性质评分', style: 'min-width: 140px', visible: false, required: false, category: 'druglikeness' },
   
   { field: 'create_time', header: '创建时间', style: 'min-width: 140px', visible: false, required: false },
   { field: 'creator_id', header: '创建者', style: 'min-width: 120px', visible: false, required: false },

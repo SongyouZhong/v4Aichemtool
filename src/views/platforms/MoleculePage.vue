@@ -1252,8 +1252,8 @@ const onPageChange = async (event: any) => {
   // 更新分页状态
   pageSize.value = newSize;
   
-  // 查询所有项目的化合物，不过滤项目
-  await loadTableData(newPage, newSize, undefined, true);
+  // 使用当前选中的项目ID加载数据
+  await loadTableData(newPage, newSize, selectedProject.value?.id, true);
 };
 
 const handleSave = () => {
@@ -1263,7 +1263,7 @@ const handleSave = () => {
 };
 
 const handleRefreshTable = async () => {
-  await loadTableData(currentPage.value, pageSize.value, undefined, true); // 查询所有项目，包含不合成的化合物
+  await loadTableData(currentPage.value, pageSize.value, selectedProject.value?.id, true); // 包含不合成的化合物
 };
 
 const handleValidate = () => {
@@ -1317,12 +1317,23 @@ const handleClearAll = () => {
 const handleSelectProject = async (project: Project) => {
   console.log('Selected project:', project);
   
-  // 设置选中的项目（用于新建化合物时的默认项目）
-  selectedProject.value = project;
-  inputs.value.mainParameter = project.id;
+  // 如果没有当前选中的项目，直接选中并加载数据
+  if (!selectedProject.value) {
+    selectedProject.value = project;
+    inputs.value.mainParameter = project.id;
+    // 加载该项目的化合物数据（重置到第一页）
+    await loadTableData(1, pageSize.value, project.id, true);
+    return;
+  }
   
-  // 不过滤表格数据，表格始终显示所有项目的化合物
-  console.log(`项目 "${project.name}" 已选中，用作新建化合物的默认项目`);
+  // 如果选择的是同一个项目，不需要确认
+  if (selectedProject.value.id === project.id) {
+    return;
+  }
+  
+  // 需要切换项目，显示确认对话框
+  pendingProject.value = project;
+  showProjectSwitchDialog.value = true;
 };
 
 // 项目切换确认对话框相关方法
@@ -1344,7 +1355,8 @@ const confirmSwitch = async () => {
     inputs.value.mainParameter = pendingProject.value.id;
     console.log('Switched to project:', pendingProject.value);
     
-    // 不重新加载表格数据，表格始终显示所有项目的化合物
+    // 重新加载表格数据以显示新项目的化合物（重置到第一页）
+    await loadTableData(1, pageSize.value, pendingProject.value.id, true);
   }
   closeSwitchDialog();
 };
@@ -1403,8 +1415,8 @@ const confirmSaveCompound = async () => {
     // 关闭对话框
     closeSaveConfirmDialog();
     
-    // 刷新表格数据以显示新保存的化合物（查询所有项目）
-    await loadTableData(1, pageSize.value, undefined, true);
+    // 刷新表格数据以显示新保存的化合物（基于当前选中的项目）
+    await loadTableData(1, 10, selectedProject.value?.id);
     
     // 可选：重置表单
     // resetForm();
@@ -1546,8 +1558,8 @@ const clearFilter = async () => {
   filterOptions.value.similarity = '';
   similarityError.value = '';
   
-  // 重新加载所有数据（重置到第一页，查询所有项目）
-  await loadTableData(1, pageSize.value, undefined, true);
+  // 重新加载所有数据（重置到第一页）
+  await loadTableData(1, pageSize.value, selectedProject.value?.id, true);
   
   alert('过滤器已清除');
 };
@@ -1699,8 +1711,8 @@ const confirmSaveChanges = async () => {
     closeEditConfirmDialog();
     closeEditDialog();
     
-    // 刷新表格数据（查询所有项目）
-    await loadTableData(currentPage.value, pageSize.value, undefined, true);
+    // 刷新表格数据
+    await loadTableData(1, 10, selectedProject.value?.id);
     
   } catch (error) {
     console.error('更新化合物失败:', error);
@@ -1731,8 +1743,8 @@ const softDeleteCompound = async (compound: any) => {
     console.log('化合物软删除成功:', updatedCompound);
     alert(`化合物 "${compound.name}" 已删除（标记为不合成状态）`);
     
-    // 刷新表格数据以移除该化合物（查询所有项目，因为列表只显示非0优先级的化合物）
-    await loadTableData(currentPage.value, pageSize.value, undefined, true);
+    // 刷新表格数据以移除该化合物（因为列表只显示非0优先级的化合物）
+    await loadTableData(1, 10, selectedProject.value?.id);
     
   } catch (error) {
     console.error('删除化合物失败:', error);

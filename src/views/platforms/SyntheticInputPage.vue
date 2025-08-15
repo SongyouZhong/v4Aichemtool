@@ -839,7 +839,7 @@ const closeSynthesisDialog = () => {
 const handleProjectChange = async () => {
   console.log('Project changed to:', selectedProject.value);
   if (selectedProject.value) {
-    await loadTableData(1, pageSize.value, selectedProject.value);
+    await loadTableData(1, pageSize.value, selectedProject.value, false); // 不包含不合成的化合物
   } else {
     // 如果没有选择项目，清空表格数据
     tableData.value = [];
@@ -849,14 +849,14 @@ const handleProjectChange = async () => {
 
 const handleRefreshTable = async () => {
   if (selectedProject.value) {
-    await loadTableData(currentPage.value, pageSize.value, selectedProject.value);
+    await loadTableData(currentPage.value, pageSize.value, selectedProject.value, false); // 不包含不合成的化合物
   }
 };
 
 const onPageChange = async (event: any) => {
   const page = event.page + 1; // PrimeVue 的页码从0开始
   const size = event.rows;
-  await loadTableData(page, size, selectedProject.value || undefined);
+  await loadTableData(page, size, selectedProject.value || undefined, false); // 不包含不合成的化合物
 };
 
 // 列设置相关方法

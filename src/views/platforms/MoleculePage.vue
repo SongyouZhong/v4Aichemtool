@@ -53,7 +53,7 @@
           <!-- 第1行：1个下拉框 + 1个按钮 -->
         <div class="input-row row-1">
           <div class="input-item">
-            <label for="current-project">Current Project:</label>
+            <label for="current-project">当前项目:</label>
             <InputText 
               id="current-project"
               :value="currentProjectDisplay"
@@ -71,11 +71,11 @@
         </div>          <!-- 第2行：2个输入框 -->
           <div class="input-row row-2">
             <div class="input-item">
-              <label for="input2">Compound Name:</label>
+              <label for="input2">化合物名称:</label>
               <InputText v-model="inputs.compoundName" id="input2" placeholder="Enter compound name" />
             </div>
             <div class="input-item">
-              <label for="input3">Compound Batch:</label>
+              <label for="input3">化合物批次:</label>
               <InputText v-model="inputs.compoundBatch" id="input3" placeholder="Enter compound batch" />
             </div>
           </div>
@@ -83,7 +83,7 @@
           <!-- 第3行：SMILES输入框和Set SMILES按钮 -->
           <div class="input-row row-3">
             <div class="input-item smiles-input-container">
-              <label for="input4">Compound SMILES:</label>
+              <label for="input4">SMILES:</label>
               <InputText v-model="inputs.compoundSmiles" id="input4" placeholder="Enter SMILES or use 'Get SMILES' button" />
               <small class="field-help">Type SMILES (e.g., CCO for ethanol) then click "Set SMILES" button</small>
             </div>
@@ -102,7 +102,7 @@
           <!-- 第4行：Compound Note -->
           <div class="input-row row-4">
             <div class="input-item note-input-container">
-              <label for="input5">Compound Note:</label>
+              <label for="input5">Note:</label>
               <textarea 
                 v-model="inputs.compoundNote" 
                 id="input5" 
@@ -116,7 +116,7 @@
           <!-- 第5行：合成优先级 -->
           <div class="input-row row-5">
             <div class="input-item">
-              <label for="synthetic-priority">Synthetic Priority:</label>
+              <label for="synthetic-priority">合成优先级:</label>
               <Dropdown 
                 v-model="inputs.syntheticPriority" 
                 id="synthetic-priority"
@@ -448,8 +448,8 @@
                 <!-- Creator 列 -->
                 <span v-else-if="col.field === 'creator_id'">{{ slotProps.data.creator_id || '-' }}</span>
                 
-                <!-- Project ID 列 -->
-                <span v-else-if="col.field === 'project_id'">{{ slotProps.data.project_id || '-' }}</span>
+                <!-- Project Name 列 -->
+                <span v-else-if="col.field === 'project_name'">{{ slotProps.data.project_name || '-' }}</span>
                 
                 <!-- Action 列 -->
                 <div v-else-if="col.field === 'action'" class="action-buttons">
@@ -576,8 +576,8 @@
             </div>
             
             <div class="readonly-field">
-              <label>项目ID:</label>
-              <span>{{ editingCompound.project_id || '-' }}</span>
+              <label>项目名称:</label>
+              <span>{{ editingCompound.project_name || '-' }}</span>
             </div>
             
             <div class="readonly-field">
@@ -1102,7 +1102,7 @@ const availableColumns = ref<ColumnConfig[]>([
   
   { field: 'create_time', header: '创建时间', style: 'min-width: 140px', visible: false, required: false },
   { field: 'creator_id', header: '创建者', style: 'min-width: 120px', visible: false, required: false },
-  { field: 'project_id', header: '项目ID', style: 'min-width: 120px', visible: false, required: false },
+  { field: 'project_name', header: '项目名称', style: 'min-width: 120px', visible: false, required: false },
   { field: 'action', header: '操作', style: 'min-width: 150px', visible: true, required: true, frozen: true, alignFrozen: 'right' }
 ]);
 
@@ -1147,7 +1147,7 @@ const defaultColumnSettings = [
   
   { field: 'create_time', visible: true },
   { field: 'creator_id', visible: true },
-  { field: 'project_id', visible: false },
+  { field: 'project_name', visible: false },
   { field: 'action', visible: true }
 ];
 
@@ -1189,11 +1189,12 @@ const hasDescriptorColumns = computed(() => {
          group.druglikeness.length > 0;
 });
 
-// 合成优先级选项（录入时不包含"不合成"选项）
+// 合成优先级选项（录入时包含"不合成"选项）
 const syntheticPriorityOptions = ref([
   { label: '高 (High)', value: 3 },
   { label: '中 (Medium)', value: 2 },
-  { label: '低 (Low)', value: 1 }
+  { label: '低 (Low)', value: 1 },
+  { label: '不合成 (No Synthesis)', value: 0 }
 ]);
 
 // 合成优先级选项（包含"不合成"，用于显示）
@@ -1244,7 +1245,7 @@ const handleSave = () => {
 };
 
 const handleRefreshTable = async () => {
-  await loadTableData(1, 10, selectedProject.value?.id);
+  await loadTableData(1, 10, selectedProject.value?.id, true); // 包含不合成的化合物
 };
 
 const handleValidate = () => {
@@ -1302,8 +1303,8 @@ const handleSelectProject = async (project: Project) => {
   if (!selectedProject.value) {
     selectedProject.value = project;
     inputs.value.mainParameter = project.id;
-    // 加载该项目的化合物数据
-    await loadTableData(1, 10, project.id);
+    // 加载该项目的化合物数据（包含不合成的化合物）
+    await loadTableData(1, 10, project.id, true);
     return;
   }
   
@@ -1336,8 +1337,8 @@ const confirmSwitch = async () => {
     inputs.value.mainParameter = pendingProject.value.id;
     console.log('Switched to project:', pendingProject.value);
     
-    // 重新加载表格数据以显示新项目的化合物
-    await loadTableData(1, 10, pendingProject.value.id);
+    // 重新加载表格数据以显示新项目的化合物（包含不合成的化合物）
+    await loadTableData(1, 10, pendingProject.value.id, true);
   }
   closeSwitchDialog();
 };
@@ -1504,18 +1505,15 @@ const applyFilter = async () => {
       // 1. 先聚合合成和活性信息
       const aggregatedResults = await aggregateCompoundsInfo(response.results);
       
-      // 2. 转换为TableRow格式，确保包含SMILES图片
-      tableData.value = aggregatedResults.map(result => ({
-        ...aggregatedCompoundToTableRow(result),
-        // 确保基础字段正确
-        name: result.name || 'Unknown',
-        description: result.description || '',
-        smiles: result.smiles || '',
-        smilesImage: result.smiles ? SmilesApiService.getSmilesImageUrl(result.smiles) : '',
-        batch: result.batch || null,
-        synthetic_priority: result.synthetic_priority || 0,
-        attachments: [] // 暂时为空数组
-      }));
+      // 2. 获取项目名称映射并转换为TableRow格式
+      const projectNameMap = new Map<string, string>();
+      projects.value.forEach(project => {
+        projectNameMap.set(project.id, project.name);
+      });
+      
+      tableData.value = aggregatedResults.map(result => 
+        aggregatedCompoundToTableRow(result, projectNameMap)
+      );
       
       // 显示搜索结果信息
       alert(`相似度搜索完成！\n找到 ${response.total_found} 个相似化合物\n相似度阈值: ${response.similarity_threshold}\n目标分子: ${response.target_smiles}`);
@@ -1542,8 +1540,8 @@ const clearFilter = async () => {
   filterOptions.value.similarity = '';
   similarityError.value = '';
   
-  // 重新加载所有数据
-  await loadTableData(1, 10, selectedProject.value?.id);
+  // 重新加载所有数据（包含不合成的化合物）
+  await loadTableData(1, 10, selectedProject.value?.id, true);
   
   alert('过滤器已清除');
 };
@@ -1812,13 +1810,8 @@ const initialize = async () => {
     loadProjects() // 先加载项目列表
   ]);
   
-  // 自动选中第一个项目（如果有的话）并加载其化合物数据
-  if (projects.value.length > 0 && !selectedProject.value) {
-    await handleSelectProject(projects.value[0]);
-  } else {
-    // 如果没有项目，加载所有化合物数据
-    await loadTableData();
-  }
+  // 默认加载所有化合物数据（不依赖项目筛选，包含不合成的化合物）
+  await loadTableData(1, 10, undefined, true);
   
   console.log('Application initialized');
 };

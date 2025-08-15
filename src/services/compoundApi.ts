@@ -12,12 +12,14 @@ export class CompoundApiService {
     size?: number
     name?: string
     project_id?: string
+    include_no_synthesis?: boolean
   } = {}): Promise<PaginatedResponse<Compound>> {
     const queryParams = {
       page: params.page || PAGINATION_CONFIG.DEFAULT_PAGE,
       size: params.size || PAGINATION_CONFIG.DEFAULT_SIZE,
       ...(params.name && { name: params.name }),
-      ...(params.project_id && { project_id: params.project_id })
+      ...(params.project_id && { project_id: params.project_id }),
+      ...(params.include_no_synthesis !== undefined && { include_no_synthesis: params.include_no_synthesis })
     }
 
     const response = await apiClient.get<PaginatedResponse<Compound>>(

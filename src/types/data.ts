@@ -39,6 +39,7 @@ export interface TableRow {
   create_time: string;
   creator_id?: string;
   project_id?: string; // 添加项目ID
+  project_name?: string; // 添加项目名称
   attachments?: string[]; // 保留以兼容现有代码
   has_synthesis?: boolean; // 是否已合成
   quantity_summary?: string; // 数量汇总

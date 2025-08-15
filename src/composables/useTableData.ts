@@ -6,6 +6,7 @@ import type { TableRow, ImageDialogData, Compound, MolecularDescriptors } from '
 import { CompoundApiService } from '@/services/compoundApi'
 import { SmilesApiService } from '@/services/smilesApi'
 import { DescriptorApiService } from '@/services/descriptorApi'
+import { ProjectApiService } from '@/services/projectApi'
 import { useCompoundAggregation, type AggregatedCompound } from '@/composables/useCompoundAggregation'
 
 export function useTableData() {
@@ -28,6 +29,21 @@ export function useTableData() {
 
   // 使用聚合功能
   const { aggregateCompoundsInfo, loading: aggregationLoading } = useCompoundAggregation()
+
+  // 获取项目名称映射
+  const getProjectNameMap = async (): Promise<Map<string, string>> => {
+    try {
+      const response = await ProjectApiService.getProjects({ page: 1, size: 1000 }) // 获取所有项目
+      const projectMap = new Map<string, string>()
+      response.items.forEach(project => {
+        projectMap.set(project.id, project.name)
+      })
+      return projectMap
+    } catch (error) {
+      console.error('Failed to load project names:', error)
+      return new Map()
+    }
+  }
 
   // 计算属性
   const scrollable = computed(() => rows.value > 15)
@@ -99,7 +115,7 @@ export function useTableData() {
   }
 
   // 将AggregatedCompound转换为TableRow（增强版，包含描述符）
-  const aggregatedCompoundToTableRow = (compound: AggregatedCompound & { descriptors?: MolecularDescriptors }): TableRow => {
+  const aggregatedCompoundToTableRow = (compound: AggregatedCompound & { descriptors?: MolecularDescriptors }, projectNameMap?: Map<string, string>): TableRow => {
     return {
       id: compound.id,
       name: compound.name || '',
@@ -113,6 +129,7 @@ export function useTableData() {
       create_time: compound.create_time,
       creator_id: compound.creator_id,
       project_id: compound.project_id, // 添加项目ID
+      project_name: projectNameMap && compound.project_id ? projectNameMap.get(compound.project_id) : undefined, // 添加项目名称
       attachments: [], // 暂时为空数组
       has_synthesis: compound.has_synthesis, // 使用聚合后的合成信息
       quantity_summary: compound.quantity_summary, // 使用聚合后的数量汇总
@@ -125,7 +142,7 @@ export function useTableData() {
   }
 
   // 将普通Compound转换为TableRow（用于基础信息显示）
-  const compoundToTableRow = (compound: Compound): TableRow => {
+  const compoundToTableRow = (compound: Compound, projectNameMap?: Map<string, string>): TableRow => {
     return {
       id: compound.id,
       name: compound.name || '',
@@ -139,6 +156,7 @@ export function useTableData() {
       create_time: compound.create_time,
       creator_id: compound.creator_id,
       project_id: compound.project_id, // 添加项目ID
+      project_name: projectNameMap && compound.project_id ? projectNameMap.get(compound.project_id) : undefined, // 添加项目名称
       attachments: [], // 暂时为空数组
       has_synthesis: false, // 默认值，等待聚合
       quantity_summary: '-', // 默认值，等待聚合
@@ -150,24 +168,30 @@ export function useTableData() {
   }
 
   // 加载表格数据（从数据库）
-  const loadTableData = async (page = 1, size = 10, projectId?: string): Promise<void> => {
+  const loadTableData = async (page = 1, size = 10, projectId?: string, includeNoSynthesis = true): Promise<void> => {
     loading.value = true
     try {
       // 1. 首先获取基础化合物数据
       const response = await CompoundApiService.getCompounds({
         page,
         size,
+        include_no_synthesis: includeNoSynthesis,
         ...(projectId && { project_id: projectId })
       })
       
-      // 2. 聚合合成和活性信息
+      // 2. 获取项目名称映射
+      const projectNameMap = await getProjectNameMap()
+      
+      // 3. 聚合合成和活性信息
       const aggregatedCompounds = await aggregateCompoundsInfo(response.items)
       
-      // 3. 聚合分子描述符信息
+      // 4. 聚合分子描述符信息
       const compoundsWithDescriptors = await aggregateDescriptors(aggregatedCompounds)
       
-      // 4. 转换为TableRow格式
-      tableData.value = compoundsWithDescriptors.map(aggregatedCompoundToTableRow)
+      // 5. 转换为TableRow格式
+      tableData.value = compoundsWithDescriptors.map(compound => 
+        aggregatedCompoundToTableRow(compound, projectNameMap)
+      )
       total.value = response.total
       currentPage.value = response.page
       pageSize.value = response.size
@@ -180,10 +204,12 @@ export function useTableData() {
         const response = await CompoundApiService.getCompounds({
           page,
           size,
+          include_no_synthesis: includeNoSynthesis,
           ...(projectId && { project_id: projectId })
         })
         
-        tableData.value = response.items.map(compoundToTableRow)
+        const projectNameMap = await getProjectNameMap()
+        tableData.value = response.items.map(compound => compoundToTableRow(compound, projectNameMap))
         total.value = response.total
         currentPage.value = response.page
         pageSize.value = response.size
@@ -200,17 +226,19 @@ export function useTableData() {
   }
 
   // 加载示例数据（从数据库加载所有数据作为示例）
-  const loadSampleData = async (projectId?: string): Promise<void> => {
+  const loadSampleData = async (projectId?: string, includeNoSynthesis = true): Promise<void> => {
     loading.value = true
     try {
       // 加载更多数据作为示例显示
       const response = await CompoundApiService.getCompounds({
         page: 1,
         size: 50, // 加载更多数据
+        include_no_synthesis: includeNoSynthesis,
         ...(projectId && { project_id: projectId })
       })
       
-      tableData.value = response.items.map(compoundToTableRow)
+      const projectNameMap = await getProjectNameMap()
+      tableData.value = response.items.map(compound => compoundToTableRow(compound, projectNameMap))
       total.value = response.total
       
       console.log('Sample data loaded from database:', tableData.value.length, 'items', projectId ? `for project: ${projectId}` : '(all projects)')
@@ -236,7 +264,8 @@ export function useTableData() {
       }
       
       const newCompound = await CompoundApiService.createCompound(newCompoundData)
-      const newRow = compoundToTableRow(newCompound)
+      const projectNameMap = await getProjectNameMap()
+      const newRow = compoundToTableRow(newCompound, projectNameMap)
       tableData.value.push(newRow)
       total.value += 1
       
@@ -259,7 +288,8 @@ export function useTableData() {
           name: newName 
         })
         
-        const updatedRow = compoundToTableRow(updatedCompound)
+        const projectNameMap = await getProjectNameMap()
+        const updatedRow = compoundToTableRow(updatedCompound, projectNameMap)
         const index = tableData.value.findIndex(r => r.id === row.id)
         if (index !== -1) {
           tableData.value[index] = updatedRow

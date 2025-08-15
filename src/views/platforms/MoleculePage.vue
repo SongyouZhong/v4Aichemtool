@@ -197,7 +197,7 @@
                 />
                 <Column 
                   v-if="groupedVisibleColumns.lipinski.length > 0"
-                  header="亲脂肪性" 
+                  header="亲脂性" 
                   :colspan="groupedVisibleColumns.lipinski.length"
                   headerStyle="text-align: center; background-color: #f3e5f5; font-weight: bold;"
                 />

@@ -31,3 +31,6 @@ npm run dev
 ```sh
 npm run build
 ```
+
+
+sudo docker run -d --name aichemol-frontend-container -p 3000:80 aichemol-frontend

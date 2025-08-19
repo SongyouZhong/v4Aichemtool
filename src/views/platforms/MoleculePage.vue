@@ -755,6 +755,20 @@
           <div class="message-text">
             <h4>确认保存化合物信息</h4>
             <p>您即将保存以下化合物信息到数据库中：</p>
+            
+            <!-- 化合物结构图片显示 -->
+            <div class="compound-preview-section" v-if="currentCompoundImageUrl">
+              <div class="preview-image-container">
+                <img 
+                  :src="currentCompoundImageUrl" 
+                  :alt="'SMILES: ' + (inputs.compoundSmiles || '')"
+                  class="preview-structure-image"
+                  @error="handleImageError($event)"
+                  :title="'分子结构预览 - ' + (inputs.compoundName || 'Unnamed Compound')"
+                />
+              </div>
+            </div>
+            
             <div class="compound-summary">
               <div class="summary-row">
                 <label>化合物名称:</label>
@@ -1029,6 +1043,14 @@ const currentProjectDisplay = computed(() => {
     return `${selectedProject.value.name}${selectedProject.value.description ? ' - ' + selectedProject.value.description : ''}`;
   }
   return 'No project selected';
+});
+
+// 计算属性：当前 SMILES 的图片 URL
+const currentCompoundImageUrl = computed(() => {
+  if (inputs.value.compoundSmiles && inputs.value.compoundSmiles.trim()) {
+    return SmilesApiService.getSmilesImageUrl(inputs.value.compoundSmiles.trim());
+  }
+  return '';
 });
 
 // 项目切换确认对话框相关
@@ -2349,10 +2371,9 @@ onMounted(() => {
   text-align: center;
   color: #495057;
   line-height: 1.2;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 153px; /* 85% of smiles image width (180px * 0.85) */
+  overflow-wrap: break-word;
+  white-space: normal; /* Allow line breaks */
 }
 
 /* 化合物编辑对话框样式 */
@@ -2733,6 +2754,35 @@ onMounted(() => {
   background: #f8f9fa;
   border: 1px solid #dee2e6;
   border-radius: 6px;
+}
+
+/* 化合物预览图片样式 */
+.compound-preview-section {
+  margin: 1rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.preview-image-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 150px;
+  padding: 1rem;
+  background: white;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.preview-structure-image {
+  max-width: 300px;
+  max-height: 200px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  object-fit: contain;
 }
 
 .summary-row {

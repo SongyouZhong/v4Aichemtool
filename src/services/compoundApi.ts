@@ -68,6 +68,62 @@ export class CompoundApiService {
     return response.data
   }
 
+  // 开始合成化合物
+  static async startSynthesis(id: string): Promise<{
+    message: string
+    compound_id: string
+    synthesis_status: number
+    synthesis_status_text: string
+    compound: Compound
+  }> {
+    const response = await apiClient.put<{
+      message: string
+      compound_id: string
+      synthesis_status: number
+      synthesis_status_text: string
+      compound: Compound
+    }>(
+      `${API_ENDPOINTS.COMPOUNDS.UPDATE(id)}/start-synthesis`
+    )
+    
+    return response.data
+  }
+
+
+  // 获取合成状态汇总
+  static async getSynthesisStatusSummary(projectId?: string): Promise<{
+    total: number
+    not_started: number
+    in_progress: number
+    completed: number
+    project_id?: string
+    status_distribution: {
+      未合成: number
+      合成中: number
+      已合成: number
+    }
+  }> {
+    const queryParams = projectId ? { project_id: projectId } : {}
+    
+    const response = await apiClient.get<{
+      total: number
+      not_started: number
+      in_progress: number
+      completed: number
+      project_id?: string
+      status_distribution: {
+        未合成: number
+        合成中: number
+        已合成: number
+      }
+    }>(
+      `${API_ENDPOINTS.COMPOUNDS.LIST}/synthesis-status-summary`,
+      queryParams
+    )
+    
+    return response.data
+  }
+
   // 批量创建化合物
   static async createCompounds(compoundsData: CompoundCreate[]): Promise<Compound[]> {
     const response = await apiClient.post<Compound[]>(

@@ -32,9 +32,10 @@ export function useTableData() {
   // 获取项目名称映射
   const getProjectNameMap = async (): Promise<Map<string, string>> => {
     try {
-      const response = await ProjectApiService.getProjects({ page: 1, size: 1000 }) // 获取所有项目
+      // 使用 getAllProjects 方法而不是直接使用大的 size 值
+      const projects = await ProjectApiService.getAllProjects()
       const projectMap = new Map<string, string>()
-      response.items.forEach(project => {
+      projects.forEach(project => {
         projectMap.set(project.id, project.name)
       })
       return projectMap
@@ -125,12 +126,12 @@ export function useTableData() {
       patent_issue: compound.patent_issue,
       patent_comment: compound.patent_comment,
       synthetic_priority: compound.synthetic_priority,
+      synthesis_status: compound.synthesis_status, // 添加合成状态字段
       create_time: compound.create_time,
       creator_id: compound.creator_id,
       project_id: compound.project_id, // 添加项目ID
       project_name: projectNameMap && compound.project_id ? projectNameMap.get(compound.project_id) : undefined, // 添加项目名称
       attachments: [], // 暂时为空数组
-      has_synthesis: compound.has_synthesis, // 使用聚合后的合成信息
       quantity_summary: compound.quantity_summary, // 使用聚合后的数量汇总
       synthesis_count: compound.synthesis_count, // 使用聚合后的合成记录数
       has_activity: compound.has_activity, // 使用聚合后的活性信息
@@ -152,12 +153,12 @@ export function useTableData() {
       patent_issue: compound.patent_issue,
       patent_comment: compound.patent_comment,
       synthetic_priority: compound.synthetic_priority,
+      synthesis_status: compound.synthesis_status, // 添加合成状态字段
       create_time: compound.create_time,
       creator_id: compound.creator_id,
       project_id: compound.project_id, // 添加项目ID
       project_name: projectNameMap && compound.project_id ? projectNameMap.get(compound.project_id) : undefined, // 添加项目名称
       attachments: [], // 暂时为空数组
-      has_synthesis: false, // 默认值，等待聚合
       quantity_summary: '-', // 默认值，等待聚合
       synthesis_count: 0, // 默认值，等待聚合
       has_activity: false, // 默认值，等待聚合

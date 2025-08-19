@@ -4,10 +4,10 @@
 import { ref } from 'vue'
 import { SyntheticApiService } from '@/services/syntheticApi'
 import { activityApi } from '@/services/activityApi'
+import { PAGINATION_CONFIG } from '@/services/apiConfig'
 import type { Compound } from '@/types/data'
 
 export interface SynthesisInfo {
-  has_synthesis: boolean
   quantity_summary: string
   synthesis_count: number
 }
@@ -19,7 +19,6 @@ export interface ActivityInfo {
 }
 
 export interface AggregatedCompound extends Compound {
-  has_synthesis: boolean
   quantity_summary: string
   synthesis_count: number
   has_activity: boolean
@@ -38,7 +37,6 @@ export function useCompoundAggregation() {
       const response = await SyntheticApiService.getSyntheticsByCompound(compoundId, 1, 1000) // 获取所有记录
       const synthetics = response.items || []
 
-      const has_synthesis = synthetics.length > 0
       const synthesis_count = synthetics.length
 
       // 计算数量汇总
@@ -62,14 +60,12 @@ export function useCompoundAggregation() {
       const quantity_summary = quantityParts.length > 0 ? quantityParts.join('+') : '-'
 
       return {
-        has_synthesis,
         quantity_summary,
         synthesis_count
       }
     } catch (error) {
       console.error(`Error calculating synthesis info for compound ${compoundId}:`, error)
       return {
-        has_synthesis: false,
         quantity_summary: '-',
         synthesis_count: 0
       }
@@ -81,7 +77,7 @@ export function useCompoundAggregation() {
    */
   const calculateActivityInfo = async (compoundId: string): Promise<ActivityInfo> => {
     try {
-      const response = await activityApi.getByCompound(compoundId, { page: 1, size: 1000 }) // 获取所有记录
+      const response = await activityApi.getByCompound(compoundId, { page: 1, size: PAGINATION_CONFIG.MAX_SIZE }) // 获取所有记录
       const activities = response.items || []
 
       const has_activity = activities.length > 0
@@ -180,7 +176,6 @@ export function useCompoundAggregation() {
       // 返回基础化合物信息，不包含聚合数据
       return compounds.map(compound => ({
         ...compound,
-        has_synthesis: false,
         quantity_summary: '-',
         synthesis_count: 0,
         has_activity: false,

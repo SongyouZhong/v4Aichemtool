@@ -313,18 +313,11 @@
                   {{ getPriorityLabel(slotProps.data.synthetic_priority) }}
                 </span>
                 
-                <!-- Has Synthesis 列 -->
-                <span v-else-if="col.field === 'has_synthesis'" class="synthesis-status-cell">
-                  <i v-if="slotProps.data.has_synthesis" 
-                     class="pi pi-check-circle synthesis-yes" 
-                     v-tooltip.top="'已合成'"
-                     style="color: #28a745; font-size: 1.2rem;"
-                  ></i>
-                  <i v-else 
-                     class="pi pi-times-circle synthesis-no" 
-                     v-tooltip.top="'未合成'"
-                     style="color: #dc3545; font-size: 1.2rem;"
-                  ></i>
+                <!-- Synthesis Status 列 -->
+                <span v-else-if="col.field === 'synthesis_status'" class="synthesis-status-cell">
+                  <span :class="getSynthesisStatusClass(slotProps.data.synthesis_status)">
+                    {{ getSynthesisStatusLabel(slotProps.data.synthesis_status) }}
+                  </span>
                 </span>
                 
                 <!-- Quantity Summary 列 -->
@@ -1095,7 +1088,7 @@ const availableColumns = ref<ColumnConfig[]>([
   { field: 'smiles', header: 'SMILES结构', style: 'min-width: 250px', visible: true, required: false },
   { field: 'description', header: '描述', style: 'min-width: 200px', visible: true, required: false },
   { field: 'synthetic_priority', header: '合成优先级', style: 'min-width: 120px', visible: true, required: false },
-  { field: 'has_synthesis', header: '是否已合成', style: 'min-width: 120px', visible: false, required: false },
+  { field: 'synthesis_status', header: '合成状态', style: 'min-width: 120px', visible: false, required: false },
   { field: 'quantity_summary', header: '数量汇总', style: 'min-width: 150px', visible: false, required: false },
   { field: 'has_activity', header: '是否有活性', style: 'min-width: 120px', visible: false, required: false },
   { field: 'activity_summary', header: '活性汇总', style: 'min-width: 200px', visible: false, required: false },
@@ -1140,7 +1133,6 @@ const defaultColumnSettings = [
   { field: 'smiles', visible: true },
   { field: 'description', visible: true },
   { field: 'synthetic_priority', visible: true },
-  { field: 'has_synthesis', visible: false },
   { field: 'quantity_summary', visible: false },
   { field: 'has_activity', visible: false },
   { field: 'activity_summary', visible: false },
@@ -1237,6 +1229,27 @@ const getPriorityLabel = (priority: number | null | undefined) => {
   if (priority === null || priority === undefined) return '-';
   const option = syntheticPriorityDisplayOptions.value.find(opt => opt.value === priority);
   return option ? option.label : `${priority}`;
+};
+
+// 获取合成状态显示文本
+const getSynthesisStatusLabel = (status: number | null | undefined) => {
+  if (status === null || status === undefined) return '未合成';
+  switch (status) {
+    case -1: return '未合成';
+    case 0: return '合成中';
+    case 1: return '已合成';
+    default: return '未知状态';
+  }
+};
+
+// 获取合成状态样式类
+const getSynthesisStatusClass = (status: number | null | undefined) => {
+  switch (status) {
+    case -1: return 'status-not-started';
+    case 0: return 'status-in-progress';
+    case 1: return 'status-completed';
+    default: return 'status-unknown';
+  }
 };
 
 // 获取Lipinski违反数的样式类
@@ -2228,6 +2241,59 @@ onMounted(() => {
   padding: 0.25rem 0.5rem;
   border-radius: 12px;
   font-size: 0.85rem;
+}
+
+/* 合成状态显示样式 */
+.synthesis-status-cell .status-not-started {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.synthesis-status-cell .status-in-progress {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.synthesis-status-cell .status-completed {
+  background-color: #d1edff;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.synthesis-status-cell .status-unknown {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: center;
+  display: inline-block;
+  min-width: 80px;
 }
 
 /* 合成状态列样式 */

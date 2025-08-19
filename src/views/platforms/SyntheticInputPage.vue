@@ -49,6 +49,26 @@
           </div>
         </div>
 
+        <!-- 状态汇总信息 -->
+        <div v-if="statusSummary" class="status-summary">
+          <div class="summary-item">
+            <span class="summary-label">总计:</span>
+            <span class="summary-value">{{ statusSummary.total }}</span>
+          </div>
+          <div class="summary-item status-not-started">
+            <span class="summary-label">未合成:</span>
+            <span class="summary-value">{{ statusSummary.not_started }}</span>
+          </div>
+          <div class="summary-item status-in-progress">
+            <span class="summary-label">合成中:</span>
+            <span class="summary-value">{{ statusSummary.in_progress }}</span>
+          </div>
+          <div class="summary-item status-completed">
+            <span class="summary-label">已合成:</span>
+            <span class="summary-value">{{ statusSummary.completed }}</span>
+          </div>
+        </div>
+
         <!-- 数据表格 -->
         <div class="table-container">
           <DataTable
@@ -139,6 +159,23 @@
               </template>
             </Column>
 
+            <!-- 合成状态列 -->
+            <Column 
+              v-if="isColumnVisible('synthesis_status')"
+              field="synthesis_status" 
+              header="合成状态" 
+              :style="getColumnStyle('synthesis_status')"
+              :frozen="isColumnFrozen('synthesis_status')"
+              :alignFrozen="getColumnAlign('synthesis_status')"
+              sortable
+            >
+              <template #body="{ data }">
+                <span class="synthesis-status-cell" :class="getSynthesisStatusClass(data.synthesis_status)">
+                  {{ getSynthesisStatusLabel(data.synthesis_status) }}
+                </span>
+              </template>
+            </Column>
+
             <!-- 描述列 -->
             <Column 
               v-if="isColumnVisible('description')"
@@ -165,6 +202,32 @@
             >
               <template #body="{ data }">
                 <span class="create-time">{{ formatDateTime(data.create_time) }}</span>
+              </template>
+            </Column>
+
+            <!-- 操作列 -->
+            <Column 
+              v-if="isColumnVisible('action')"
+              field="action" 
+              header="操作" 
+              :style="getColumnStyle('action')"
+              :frozen="isColumnFrozen('action')"
+              :alignFrozen="getColumnAlign('action')"
+            >
+              <template #body="{ data }">
+                <div class="action-buttons">
+                  <Button 
+                    v-if="data.synthesis_status !== 1"
+                    icon="pi pi-play"
+                    size="middle"
+                    outlined
+                    @click="startSynthesis(data)"
+                    :disabled="data.synthesis_status === 0"
+                    v-tooltip.top="data.synthesis_status === 0 ? '合成进行中' : '开始合成此化合物'"
+                    class="action-btn start-synthesis-btn"
+                  />
+
+                </div>
               </template>
             </Column>
 
@@ -481,6 +544,47 @@
         </div>
       </div>
     </Dialog>
+
+    <!-- 开始合成确认对话框 -->
+    <Dialog 
+      v-model:visible="showStartSynthesisDialog" 
+      header="确认开始合成"
+      :modal="true" 
+      :closable="true"
+      :draggable="false"
+      :resizable="false"
+      class="start-synthesis-dialog"
+      @hide="closeStartSynthesisDialog"
+    >
+      <div class="start-synthesis-content">
+        <div class="confirmation-message">
+          <i class="pi pi-question-circle question-icon"></i>
+          <div class="message-text">
+            <h4>确认开始合成</h4>
+            <p v-if="currentCompoundForSynthesis">
+              您确定要开始合成化合物 <strong>"{{ currentCompoundForSynthesis.name }}"</strong> 吗？
+            </p>
+            <p>开始合成后，该化合物的状态将变更为"合成中"。</p>
+          </div>
+        </div>
+        
+        <div class="dialog-actions">
+          <Button 
+            label="取消" 
+            icon="pi pi-times" 
+            severity="secondary"
+            @click="closeStartSynthesisDialog"
+            :disabled="startingSynthesis"
+          />
+          <Button 
+            label="确认开始" 
+            icon="pi pi-check" 
+            @click="confirmStartSynthesis"
+            :loading="startingSynthesis"
+          />
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -494,6 +598,7 @@ import Dropdown from 'primevue/dropdown';
 import InputText from 'primevue/inputtext';
 import InputNumber from 'primevue/inputnumber';
 import Textarea from 'primevue/textarea';
+import { useToast } from 'primevue/usetoast';
 
 // 导入自定义组件
 import ProjectList from '@/components/ProjectList.vue';
@@ -505,9 +610,13 @@ import type { Project } from '@/types/data';
 
 // 导入合成记录API服务
 import { SyntheticApiService, type SyntheticRecord, type SyntheticRecordCreate, type SyntheticRecordUpdate } from '@/services/syntheticApi';
+import { CompoundApiService } from '@/services/compoundApi';
 
 // 导入合成工具函数
 import { generateSyntheticName } from '@/utils/syntheticUtils';
+
+// 初始化toast
+const toast = useToast();
 
 // 使用组合式函数
 const {
@@ -562,6 +671,15 @@ const currentSynthesis = ref<Partial<SyntheticRecord & SyntheticRecordCreate>>({
 });
 const saving = ref(false);
 
+// 开始合成相关状态
+const showStartSynthesisDialog = ref(false);
+const startingSynthesis = ref(false);
+const currentCompoundForSynthesis = ref<any>(null);
+
+// 状态管理相关
+const statusSummary = ref<any>(null);
+const batchUpdateLoading = ref(false);
+
 // 单位选项
 const unitOptions = ref([
   { label: '毫克 (mg)', value: 'mg' },
@@ -599,8 +717,10 @@ const availableColumns = ref<ColumnConfig[]>([
   { field: 'name', header: '化合物名称', style: 'min-width: 150px', visible: true, required: true },
   { field: 'smiles', header: 'SMILES结构', style: 'min-width: 300px', visible: true, required: false },
   { field: 'synthetic_priority', header: '合成优先级', style: 'min-width: 120px', visible: true, required: false },
+  { field: 'synthesis_status', header: '合成状态', style: 'min-width: 120px', visible: true, required: false },
   { field: 'description', header: '描述', style: 'min-width: 200px', visible: true, required: false },
   { field: 'create_time', header: '创建时间', style: 'min-width: 140px', visible: true, required: false },
+  { field: 'action', header: '操作', style: 'min-width: 150px', visible: true, required: true }
 ]);
 
 // 默认列配置
@@ -608,6 +728,7 @@ const defaultColumnSettings = [
   { field: 'name', visible: true },
   { field: 'smiles', visible: true },
   { field: 'synthetic_priority', visible: true },
+  { field: 'synthesis_status', visible: true },
   { field: 'description', visible: true },
   { field: 'create_time', visible: true },
   { field: 'action', visible: true }
@@ -619,6 +740,13 @@ const syntheticPriorityOptions = [
   { label: '中 (Medium)', value: 2 },
   { label: '低 (Low)', value: 1 },
   { label: '不合成 (No Synthesis)', value: 0 }
+];
+
+// 合成状态选项
+const synthesisStatusOptions = [
+  { label: '未合成', value: -1 },
+  { label: '合成中', value: 0 },
+  { label: '已合成', value: 1 }
 ];
 
 // 列相关的辅助方法
@@ -647,6 +775,23 @@ const getPriorityLabel = (priority: number | null | undefined) => {
   if (priority === null || priority === undefined) return '-';
   const option = syntheticPriorityOptions.find(opt => opt.value === priority);
   return option ? option.label : `${priority}`;
+};
+
+// 获取合成状态显示文本
+const getSynthesisStatusLabel = (status: number | null | undefined) => {
+  if (status === null || status === undefined) return '未合成';
+  const option = synthesisStatusOptions.find(opt => opt.value === status);
+  return option ? option.label : '未知状态';
+};
+
+// 获取合成状态样式类
+const getSynthesisStatusClass = (status: number | null | undefined) => {
+  switch (status) {
+    case -1: return 'status-not-started';
+    case 0: return 'status-in-progress';
+    case 1: return 'status-completed';
+    default: return 'status-unknown';
+  }
 };
 
 // 格式化日期时间
@@ -835,13 +980,107 @@ const closeSynthesisDialog = () => {
   };
 };
 
+// 开始合成相关方法
+const startSynthesis = (compound: any) => {
+  // 检查合成状态
+  const status = compound.synthesis_status !== undefined && compound.synthesis_status !== null ? compound.synthesis_status : -1;
+  
+  if (status === 1) { // 已合成
+    toast.add({
+      severity: 'warn',
+      summary: '无法开始合成',
+      detail: `化合物 "${compound.name}" 已经完成合成`,
+      life: 3000
+    });
+    return;
+  }
+  
+  if (status === 0) { // 合成中
+    toast.add({
+      severity: 'info',
+      summary: '合成进行中',
+      detail: `化合物 "${compound.name}" 正在合成中`,
+      life: 3000
+    });
+    return;
+  }
+  
+  // 只有未合成的化合物才能开始合成
+  currentCompoundForSynthesis.value = compound;
+  showStartSynthesisDialog.value = true;
+};
+
+const closeStartSynthesisDialog = () => {
+  showStartSynthesisDialog.value = false;
+  currentCompoundForSynthesis.value = null;
+};
+
+const confirmStartSynthesis = async () => {
+  if (!currentCompoundForSynthesis.value) return;
+  
+  startingSynthesis.value = true;
+  try {
+    const result = await CompoundApiService.startSynthesis(currentCompoundForSynthesis.value.id);
+    console.log('开始合成成功:', result);
+    
+    // 更新当前表格数据中的化合物状态
+    const compoundIndex = tableData.value.findIndex((item: any) => item.id === currentCompoundForSynthesis.value.id);
+    if (compoundIndex !== -1) {
+      (tableData.value[compoundIndex] as any).synthesis_status = 0; // 合成中
+    }
+    
+    // 显示成功提示
+    toast.add({
+      severity: 'success',
+      summary: '开始合成成功',
+      detail: `化合物 "${currentCompoundForSynthesis.value.name}" 已开始合成！`,
+      life: 3000
+    });
+    
+    closeStartSynthesisDialog();
+    
+    // 刷新状态汇总
+    await loadStatusSummary();
+    
+  } catch (error: any) {
+    console.error('开始合成失败:', error);
+    
+    // 根据错误类型显示不同的提示
+    let errorMessage = '开始合成失败，请稍后重试';
+    
+    if (error.response?.status === 400) {
+      const detail = error.response?.data?.detail;
+      if (detail?.includes('already synthesized')) {
+        errorMessage = '该化合物已经完成合成，无需重复操作';
+      } else if (detail?.includes('already in progress')) {
+        errorMessage = '该化合物正在合成中，请等待完成';
+      } else {
+        errorMessage = detail || '操作无效，请检查化合物状态';
+      }
+    } else if (error.response?.status === 404) {
+      errorMessage = '化合物不存在';
+    }
+    
+    toast.add({
+      severity: 'error',
+      summary: '开始合成失败',
+      detail: errorMessage,
+      life: 5000
+    });
+  } finally {
+    startingSynthesis.value = false;
+  }
+};
+
 // 事件处理方法
 const handleProjectChange = async () => {
   console.log('Project changed to:', selectedProject.value);
   if (selectedProject.value) {
     await loadTableData(1, pageSize.value, selectedProject.value, false); // 不包含不合成的化合物
+    await loadStatusSummary(); // 加载状态汇总
   } else {
     // 如果没有选择项目，清空表格数据
+    statusSummary.value = null;
     tableData.value = [];
     total.value = 0;
   }
@@ -850,6 +1089,18 @@ const handleProjectChange = async () => {
 const handleRefreshTable = async () => {
   if (selectedProject.value) {
     await loadTableData(currentPage.value, pageSize.value, selectedProject.value, false); // 不包含不合成的化合物
+    await loadStatusSummary(); // 同时刷新状态汇总
+  }
+};
+
+// 加载状态汇总
+const loadStatusSummary = async () => {
+  try {
+    if (selectedProject.value) {
+      statusSummary.value = await CompoundApiService.getSynthesisStatusSummary(selectedProject.value);
+    }
+  } catch (error) {
+    console.error('加载状态汇总失败:', error);
   }
 };
 
@@ -980,12 +1231,6 @@ const createNewProject = async (name: string, description?: string) => {
   }
 };
 
-// 化合物编辑（暂时只是提示）
-const editCompound = (compound: any) => {
-  console.log('编辑化合物:', compound);
-  alert(`编辑化合物: ${compound.name}\n功能待实现`);
-};
-
 // 初始化
 const initialize = async () => {
   // 加载列设置
@@ -998,6 +1243,7 @@ const initialize = async () => {
   if (projects.value.length > 0 && !selectedProject.value) {
     selectedProject.value = projects.value[0].id;
     await handleProjectChange();
+    await loadStatusSummary(); // 加载状态汇总
   }
   
   console.log('Synthetic Input Page initialized');
@@ -1139,6 +1385,49 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
+/* 状态汇总样式 */
+.status-summary {
+  display: flex;
+  gap: 1.5rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.summary-label {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+  font-weight: 500;
+}
+
+.summary-value {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #495057;
+}
+
+.status-not-started .summary-value {
+  color: #dc3545; /* 红色 - 未合成 */
+}
+
+.status-in-progress .summary-value {
+  color: #fd7e14; /* 橙色 - 合成中 */
+}
+
+.status-completed .summary-value {
+  color: #198754; /* 绿色 - 已合成 */
+}
+
 .refresh-btn,
 .column-btn {
   min-width: 100px;
@@ -1231,6 +1520,41 @@ onMounted(() => {
   font-weight: 500;
   background-color: #e9ecef;
   color: #495057;
+}
+
+/* 合成状态样式 */
+.synthesis-status-cell {
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  text-align: center;
+  display: inline-block;
+  min-width: 80px;
+}
+
+.status-not-started {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+}
+
+.status-in-progress {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.status-completed {
+  background-color: #d1edff;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.status-unknown {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
 }
 
 .description-text {
@@ -1595,5 +1919,75 @@ onMounted(() => {
   .save-btn {
     width: 100%;
   }
+}
+
+/* 开始合成按钮样式 */
+.start-synthesis-btn {
+  background-color: #28a745 !important;
+  border-color: #28a745 !important;
+  color: white !important;
+}
+
+.start-synthesis-btn:hover {
+  background-color: #218838 !important;
+  border-color: #218838 !important;
+}
+
+.start-synthesis-btn:disabled {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: white !important;
+  opacity: 0.6;
+}
+
+/* 开始合成确认对话框样式 */
+.start-synthesis-dialog :deep(.p-dialog-content) {
+  padding: 0;
+}
+
+.start-synthesis-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  min-width: 400px;
+}
+
+.start-synthesis-content .confirmation-message {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+  padding: 1rem;
+  background: #e8f5e8;
+  border: 1px solid #c3e6c3;
+  border-radius: 8px;
+  border-left: 4px solid #28a745;
+}
+
+.start-synthesis-content .question-icon {
+  color: #28a745;
+  font-size: 1.5rem;
+  margin-top: 0.2rem;
+  flex-shrink: 0;
+}
+
+.start-synthesis-content .message-text h4 {
+  margin: 0 0 0.75rem 0;
+  color: #155724;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.start-synthesis-content .message-text p {
+  margin: 0 0 0.5rem 0;
+  color: #155724;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.start-synthesis-content .dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding: 0 1rem 1rem;
 }
 </style>

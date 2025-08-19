@@ -71,12 +71,24 @@ export class ProjectApiService {
 
   // 获取所有项目（不分页，用于下拉选择等场景）
   static async getAllProjects(): Promise<Project[]> {
-    const response = await this.getProjects({ 
-      page: 1, 
-      size: PAGINATION_CONFIG.MAX_SIZE 
-    })
+    const allProjects: Project[] = []
+    let page = 1
+    let hasMore = true
     
-    return response.items
+    while (hasMore) {
+      const response = await this.getProjects({ 
+        page, 
+        size: PAGINATION_CONFIG.MAX_SIZE 
+      })
+      
+      allProjects.push(...response.items)
+      
+      // 如果返回的项目数量少于请求的数量，说明已经是最后一页
+      hasMore = response.items.length === PAGINATION_CONFIG.MAX_SIZE && page < response.pages
+      page++
+    }
+    
+    return allProjects
   }
 }
 

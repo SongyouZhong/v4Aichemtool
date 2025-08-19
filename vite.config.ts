@@ -11,7 +11,7 @@ export default defineConfig({
   },
   server: {
     host: '0.0.0.0', // 允许局域网访问
-    port: 3000,      // 前端端口
+    port: 3001,      // 前端端口
     strictPort: true // 如果端口被占用，不要自动更换端口
   }
 });

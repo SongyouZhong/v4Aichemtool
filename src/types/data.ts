@@ -41,7 +41,8 @@ export interface TableRow {
   project_id?: string; // 添加项目ID
   project_name?: string; // 添加项目名称
   attachments?: string[]; // 保留以兼容现有代码
-  has_synthesis?: boolean; // 是否已合成
+  synthesis_status?: number; // 合成状态: -1未合成, 0合成中, 1已合成
+  synthesis_status_text?: string; // 合成状态文本
   quantity_summary?: string; // 数量汇总
   synthesis_count?: number; // 合成记录数
   has_activity?: boolean; // 是否有活性数据
@@ -94,10 +95,10 @@ export interface Compound {
   patent_issue?: string;
   patent_comment?: string;
   synthetic_priority?: number;
+  synthesis_status?: number; // 合成状态：-1未合成，0合成中，1已合成
   create_time: string;
   creator_id?: string;
   project_id?: string; // 添加项目ID
-  has_synthesis?: boolean; // 是否已合成
   quantity_summary?: string; // 数量汇总
   synthesis_count?: number; // 合成记录数
   has_activity?: boolean; // 是否有活性数据
@@ -114,6 +115,7 @@ export interface CompoundCreate {
   patent_issue?: string;
   patent_comment?: string;
   synthetic_priority?: number;
+  synthesis_status?: number; // 合成状态：-1未合成，0合成中，1已合成
   creator_id?: string;
   project_id?: string; // 添加项目ID
 }

@@ -10,8 +10,8 @@ export function useAuth() {
   const isAuthenticated = computed(() => authStore.isLoggedIn)
   const isLoading = computed(() => authStore.isLoading)
 
-  const login = async (username: string, password: string) => {
-    const success = await authStore.login(username, password)
+  const login = async (phone: string, password: string) => {
+    const success = await authStore.login(phone, password)
     if (success) {
       router.push({ name: 'Home' })
     }

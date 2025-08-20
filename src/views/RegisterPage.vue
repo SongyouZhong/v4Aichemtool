@@ -203,6 +203,7 @@ const handleRegister = async () => {
     const phoneExists = await userApi.checkPhoneExists(registerForm.phone)
     if (phoneExists) {
       errors.phone = '该手机号已被注册'
+      loading.value = false
       return
     }
 

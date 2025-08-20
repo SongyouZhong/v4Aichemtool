@@ -57,7 +57,10 @@ export class ApiClient {
         errorMessage = errorText || errorMessage
       }
       
-      throw new Error(errorMessage)
+      // 创建带有状态码的错误对象
+      const error = new Error(errorMessage) as any
+      error.status = response.status
+      throw error
     }
 
     const data = await response.json()

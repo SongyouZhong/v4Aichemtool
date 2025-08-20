@@ -596,8 +596,11 @@ const handleApproval = async () => {
 
   approving.value = true
   try {
-    // 这里需要调用审批API，根据后端API调整
-    // await userApi.approveUser(approvalUser.value.id, approvalForm)
+    // 调用审批API
+    await userApi.approveUser(approvalUser.value.id, {
+      status: approvalForm.status,
+      role: approvalForm.role
+    })
     
     toast.add({
       severity: 'success',

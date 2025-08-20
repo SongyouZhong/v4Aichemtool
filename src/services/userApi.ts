@@ -20,6 +20,8 @@ class UserApiService {
     if (params.page !== undefined) queryParams.append('skip', String((params.page - 1) * (params.size || 10)))
     if (params.size !== undefined) queryParams.append('limit', String(params.size))
     if (params.department) queryParams.append('department', params.department)
+    if (params.status) queryParams.append('status', params.status)
+    if (params.role) queryParams.append('role', params.role)
 
     const response = await this.apiClient.get<User[]>(`/users/?${queryParams}`)
     

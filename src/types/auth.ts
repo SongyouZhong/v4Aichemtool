@@ -1,11 +1,14 @@
 export interface AuthUser {
-  username: string;
-  email?: string;
-  id?: string;
+  id: string;
+  name: string;
+  phone: string;
+  department: string;
+  role: string;
+  status: string;
 }
 
 export interface LoginForm {
-  username: string;
+  phone: string;
   password: string;
   remember: boolean;
 }

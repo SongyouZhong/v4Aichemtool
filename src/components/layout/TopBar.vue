@@ -60,7 +60,7 @@ const navigateToProtein = () => {
           class="topbar-link"
         />
         <div v-if="isAuthenticated && user" class="user-info">
-          <span class="username">{{ user.username }}</span>
+          <span class="username">{{ user.name }}</span>
         </div>
         <Button 
           v-if="!isAuthenticated"

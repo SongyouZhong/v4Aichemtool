@@ -3,44 +3,44 @@
     <Card class="login-card">
       <template #header>
         <div class="login-header">
-          <h2>Login</h2>
-          <p>Please enter your credentials to continue</p>
+          <h2>用户登录</h2>
+          <p>请输入您的手机号和密码</p>
         </div>
       </template>
       
       <template #content>
         <div class="login-form">
           <div class="field">
-            <label for="username">Username</label>
+            <label for="phone">手机号</label>
             <InputText 
-              id="username" 
-              v-model="loginForm.username" 
-              :class="{ 'p-invalid': errors.username }"
-              placeholder="Enter your username"
+              id="phone" 
+              v-model="loginForm.phone" 
+              :class="{ 'p-invalid': errors.phone }"
+              placeholder="请输入手机号"
             />
-            <small v-if="errors.username" class="p-error">{{ errors.username }}</small>
+            <small v-if="errors.phone" class="p-error">{{ errors.phone }}</small>
           </div>
           
           <div class="field">
-            <label for="password">Password</label>
+            <label for="password">密码</label>
             <Password 
               id="password" 
               v-model="loginForm.password" 
               :class="{ 'p-invalid': errors.password }"
               :feedback="false"
               :toggle-mask="true"
-              placeholder="Enter your password"
+              placeholder="请输入密码"
             />
             <small v-if="errors.password" class="p-error">{{ errors.password }}</small>
           </div>
           
           <div class="field-checkbox">
             <Checkbox id="remember" v-model="loginForm.remember" binary />
-            <label for="remember">Remember me</label>
+            <label for="remember">记住我</label>
           </div>
           
           <Button 
-            label="Sign In" 
+            label="登录" 
             icon="pi pi-sign-in"
             @click="handleLogin"
             :loading="isLoading"
@@ -48,11 +48,11 @@
           />
           
           <div class="divider">
-            <span>or</span>
+            <span>或</span>
           </div>
           
           <Button 
-            label="Continue as Guest" 
+            label="访客访问" 
             icon="pi pi-user"
             @click="continueAsGuest"
             :loading="isLoading"
@@ -66,10 +66,10 @@
       <template #footer>
         <div class="login-footer">
           <p>
-            <a href="#" @click.prevent="forgotPassword">Forgot your password?</a>
+            <a href="#" @click.prevent="forgotPassword">忘记密码？</a>
           </p>
           <p>
-            Don't have an account? <a href="#" @click.prevent="signUp">Sign up</a>
+            还没有账号？ <a href="#" @click.prevent="signUp">立即注册</a>
           </p>
         </div>
       </template>
@@ -92,34 +92,41 @@ const router = useRouter();
 
 // Form data
 const loginForm = reactive({
-  username: '',
+  phone: '',
   password: '',
   remember: false
 });
 
 // Validation errors
 const errors = reactive({
-  username: '',
+  phone: '',
   password: ''
 });
 
 // Validate form
 const validateForm = () => {
   // Clear previous errors
-  errors.username = '';
+  errors.phone = '';
   errors.password = '';
   
   let isValid = true;
   
-  // Check username
-  if (!loginForm.username.trim()) {
-    errors.username = 'Username is required';
+  // Check phone
+  if (!loginForm.phone.trim()) {
+    errors.phone = '请输入手机号';
     isValid = false;
+  } else {
+    // 验证手机号格式
+    const phoneRegex = /^1[3-9]\d{9}$/;
+    if (!phoneRegex.test(loginForm.phone)) {
+      errors.phone = '请输入正确的手机号格式';
+      isValid = false;
+    }
   }
   
   // Check password
   if (!loginForm.password) {
-    errors.password = 'Password is required';
+    errors.password = '请输入密码';
     isValid = false;
   }
   
@@ -133,13 +140,13 @@ const handleLogin = async () => {
   }
   
   try {
-    const success = await login(loginForm.username, loginForm.password);
+    const success = await login(loginForm.phone, loginForm.password);
     if (!success) {
-      errors.password = 'Invalid credentials';
+      errors.password = '手机号或密码错误，或账号未通过审批';
     }
   } catch (error) {
     console.error('Login failed:', error);
-    errors.password = 'Login failed. Please try again.';
+    errors.password = '登录失败，请稍后重试';
   }
 };
 

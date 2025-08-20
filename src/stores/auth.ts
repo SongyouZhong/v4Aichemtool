@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { userApi } from '@/services/userApi'
 import type { AuthUser, AuthState } from '@/types'
 
 export const useAuthStore = defineStore('auth', {
@@ -14,19 +15,24 @@ export const useAuthStore = defineStore('auth', {
   },
 
   actions: {
-    async login(username: string, password: string): Promise<boolean> {
+    async login(phone: string, password: string): Promise<boolean> {
       this.isLoading = true
       
       try {
-        // 模拟登录API调用
-        await new Promise(resolve => setTimeout(resolve, 1000))
+        // 调用后端API进行用户认证
+        const authResult = await userApi.authenticateUser(phone, password)
         
-        // 简单的验证逻辑（实际项目中应该调用真实API）
-        if (username && password) {
+        if (authResult && authResult.user_id) {
+          // 获取完整的用户信息
+          const user = await userApi.getUserById(authResult.user_id)
+          
           const userData: AuthUser = {
-            username,
-            email: `${username}@example.com`,
-            id: Math.random().toString(36).substr(2, 9)
+            id: user.id,
+            name: user.name,
+            phone: user.phone,
+            department: user.department,
+            role: user.role,
+            status: user.status
           }
           
           this.user = userData
@@ -40,7 +46,7 @@ export const useAuthStore = defineStore('auth', {
         }
         
         return false
-      } catch (error) {
+      } catch (error: any) {
         console.error('Login failed:', error)
         return false
       } finally {
@@ -83,9 +89,12 @@ export const useAuthStore = defineStore('auth', {
     async autoLogin() {
       try {
         const guestUser: AuthUser = {
-          username: 'Guest User',
-          email: 'guest@aichemtool.com',
-          id: 'guest-' + Date.now()
+          id: 'guest-' + Date.now(),
+          name: '访客用户',
+          phone: '',
+          department: '访客',
+          role: 'guest',
+          status: 'ACTIVE'
         }
         
         this.user = guestUser
@@ -95,9 +104,9 @@ export const useAuthStore = defineStore('auth', {
         localStorage.setItem('user', JSON.stringify(guestUser))
         localStorage.setItem('isAuthenticated', 'true')
         
-        console.log('Auto-login successful for guest user')
+        console.log('访客用户自动登录成功')
       } catch (error) {
-        console.error('Auto-login failed:', error)
+        console.error('自动登录失败:', error)
       }
     }
   }

@@ -51,6 +51,9 @@ export interface UserListQuery {
   page?: number
   size?: number
   department?: string
+  status?: string
+  role?: string
+  keyword?: string
 }
 
 // 部门选项

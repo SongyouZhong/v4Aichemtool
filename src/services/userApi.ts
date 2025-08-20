@@ -2,7 +2,7 @@
 
 import { ApiClient } from './apiClient'
 import type { PaginatedResponse } from './apiClient'
-import type { User, UserCreate, UserUpdate, UserListQuery } from '@/types/user'
+import type { User, UserRegister, UserCreate, UserUpdate, UserListQuery } from '@/types/user'
 
 class UserApiService {
   private apiClient: ApiClient
@@ -50,6 +50,14 @@ class UserApiService {
   }
 
   /**
+   * 用户注册
+   */
+  async registerUser(userData: UserRegister): Promise<User> {
+    const response = await this.apiClient.post<User>('/users/register', userData)
+    return response.data
+  }
+
+  /**
    * 创建用户
    */
   async createUser(userData: UserCreate): Promise<User> {
@@ -70,6 +78,49 @@ class UserApiService {
    */
   async deleteUser(id: string): Promise<void> {
     await this.apiClient.delete(`/users/${id}`)
+  }
+
+  /**
+   * 获取待审批用户列表
+   */
+  async getPendingUsers(params: UserListQuery = {}): Promise<PaginatedResponse<User>> {
+    const queryParams = new URLSearchParams()
+    
+    if (params.page !== undefined) queryParams.append('skip', String((params.page - 1) * (params.size || 10)))
+    if (params.size !== undefined) queryParams.append('limit', String(params.size))
+
+    const response = await this.apiClient.get<User[]>(`/users/pending?${queryParams}`)
+    
+    return {
+      items: response.data,
+      total: response.data.length,
+      page: params.page || 1,
+      size: params.size || 10,
+      pages: Math.ceil(response.data.length / (params.size || 10))
+    }
+  }
+
+  /**
+   * 审批用户
+   */
+  async approveUser(userId: string, approvalData: { status: string; role: string }): Promise<User> {
+    const response = await this.apiClient.post<User>(`/users/${userId}/approve`, approvalData)
+    return response.data
+  }
+
+  /**
+   * 重置用户密码
+   */
+  async resetUserPassword(userId: string, newPassword: string): Promise<void> {
+    await this.apiClient.post(`/users/${userId}/reset-password`, { new_password: newPassword })
+  }
+
+  /**
+   * 用户身份验证
+   */
+  async authenticateUser(phone: string, password: string): Promise<any> {
+    const response = await this.apiClient.post('/users/authenticate', { phone, password })
+    return response.data
   }
 
   /**

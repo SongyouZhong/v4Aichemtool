@@ -1,24 +1,50 @@
 // 用户管理相关类型定义
 
+export enum UserStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED', 
+  REJECTED = 'REJECTED',
+  ACTIVE = 'ACTIVE'
+}
+
+export enum UserRole {
+  USER = 'user',
+  ADMIN = 'admin',
+  MANAGER = 'manager'
+}
+
 export interface User {
   id: string
   name: string
   phone: string
   department: string
+  role: UserRole
+  status: UserStatus
   create_time: string
   update_time: string
+}
+
+export interface UserRegister {
+  name: string
+  phone: string
+  department: string
+  password: string
 }
 
 export interface UserCreate {
   name: string
   phone: string
   department: string
+  password: string
+  role?: UserRole
+  status?: UserStatus
 }
 
 export interface UserUpdate {
   name?: string
   phone?: string
   department?: string
+  role?: UserRole
 }
 
 export interface UserListQuery {

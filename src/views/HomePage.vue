@@ -60,13 +60,6 @@ const smallMoleculeTools = ref<SmallMoleculeTool[]>([
     buttonText: 'Access Platform',
     type: 'synthetic-input'
   },
-  // {
-  //   title: '用户管理模块',
-  //   category: 'User Management/Administration',
-  //   description: '用户信息管理系统，支持用户的创建、编辑、删除和查询功能。提供完整的用户生命周期管理，包括部门分组和权限管理。',
-  //   buttonText: '进入管理',
-  //   type: 'user-management'
-  // },
   {
     title: '活性录入模块',
     category: 'Activity Data Input/Management',
@@ -80,6 +73,13 @@ const smallMoleculeTools = ref<SmallMoleculeTool[]>([
     description: '检测方法管理系统，支持检测方法的创建、编辑、删除和查询功能。为活性数据录入提供检测方法配置支持。',
     buttonText: '管理检测方法',
     type: 'assay-management'
+  },
+  {
+    title: '用户管理模块',
+    category: 'User Management/Administration',
+    description: '用户管理系统，支持用户的创建、编辑、删除和查询功能。包括用户注册审批、角色分配和权限管理功能。',
+    buttonText: '管理用户',
+    type: 'user-management'
   }
 ]);
 

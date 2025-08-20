@@ -4,11 +4,12 @@ import { useAuthStore } from '@/stores'
 // 路由组件懒加载
 const HomePage = () => import('@/views/HomePage.vue')
 const LoginPage = () => import('@/views/LoginPage.vue')
+const RegisterPage = () => import('@/views/RegisterPage.vue')
 const DataInputPage = () => import('@/views/platforms/MoleculePage.vue')
 const SyntheticInputPage = () => import('@/views/platforms/SyntheticInputPage.vue')
-const UserManagementPage = () => import('@/views/UserManagementPage.vue')
 const ActivityInputPage = () => import('@/views/ActivityInput.vue')
 const AssayManagementPage = () => import('@/views/AssayManagement.vue')
+const UserManagementPage = () => import('@/views/UserManagement.vue')
 
 const routes = [
   {
@@ -24,6 +25,12 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: RegisterPage,
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/platforms/data-input',
     name: 'DataInput',
     component: DataInputPage,
@@ -36,12 +43,6 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
-    path: '/users',
-    name: 'UserManagement',
-    component: UserManagementPage,
-    meta: { requiresAuth: true }
-  },
-  {
     path: '/platforms/activity-input',
     name: 'ActivityInput',
     component: ActivityInputPage,
@@ -51,6 +52,12 @@ const routes = [
     path: '/platforms/assay-management',
     name: 'AssayManagement',
     component: AssayManagementPage,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/user-management',
+    name: 'UserManagement',
+    component: UserManagementPage,
     meta: { requiresAuth: true }
   }
 ]

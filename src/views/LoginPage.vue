@@ -151,8 +151,8 @@ const forgotPassword = () => {
 
 // Sign up handler
 const signUp = () => {
-  // In a real app, you would navigate to a registration page
-  alert('Sign up functionality would be implemented here');
+  // 导航到注册页面
+  router.push({ name: 'Register' });
 };
 
 // Continue as guest handler

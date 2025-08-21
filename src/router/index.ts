@@ -9,7 +9,7 @@ const DataInputPage = () => import('@/views/platforms/MoleculePage.vue')
 const SyntheticInputPage = () => import('@/views/platforms/SyntheticInputPage.vue')
 const ActivityInputPage = () => import('@/views/ActivityInput.vue')
 const AssayManagementPage = () => import('@/views/AssayManagement.vue')
-const UserManagementPage = () => import('@/views/UserManagement.vue')
+const UserManagementPage = () => import('@/views/ManagementCenterPage.vue')
 
 const routes = [
   {

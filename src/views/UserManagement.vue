@@ -169,12 +169,22 @@
                         v-if="data.status === UserStatus.PENDING"
                       />
                       <Button
-                        icon="pi pi-trash"
+                        icon="pi pi-key"
+                        severity="warning"
+                        text
+                        rounded
+                        @click="resetUserPassword(data)"
+                        v-tooltip.top="'重置密码'"
+                        v-if="data.status === UserStatus.APPROVED"
+                      />
+                      <Button
+                        icon="pi pi-ban"
                         severity="danger"
                         text
                         rounded
-                        @click="deleteUser(data)"
-                        v-tooltip.top="'删除'"
+                        @click="deactivateUser(data)"
+                        v-tooltip.top="'设为失效'"
+                        v-if="data.status === UserStatus.APPROVED"
                       />
                     </div>
                   </template>
@@ -368,18 +378,10 @@
               />
               <label for="approve">通过</label>
             </div>
-            <div class="approval-option">
-              <RadioButton
-                v-model="approvalForm.status"
-                input-id="reject"
-                :value="UserStatus.REJECTED"
-              />
-              <label for="reject">拒绝</label>
-            </div>
           </div>
         </div>
 
-        <div class="form-group" v-if="approvalForm.status === UserStatus.APPROVED">
+        <div class="form-group">
           <label>分配角色</label>
           <Dropdown
             v-model="approvalForm.role"
@@ -403,6 +405,54 @@
           />
         </div>
       </div>
+    </Dialog>
+
+    <!-- 密码重置结果对话框 -->
+    <Dialog
+      v-model:visible="showPasswordResetDialog"
+      header="密码重置成功"
+      modal
+      :style="{ width: '500px' }"
+      :closable="false"
+    >
+      <div class="password-reset-content">
+        <div class="reset-info">
+          <i class="pi pi-check-circle" style="font-size: 2rem; color: var(--p-green-500); margin-right: 1rem;"></i>
+          <div>
+            <h3>用户密码已重置</h3>
+            <p>用户 <strong>{{ resetPasswordUser?.name }}</strong> 的密码已成功重置</p>
+          </div>
+        </div>
+        
+        <div class="new-password-section">
+          <label>新密码：</label>
+          <div class="password-display">
+            <InputText
+              :value="newPassword"
+              readonly
+              class="password-input"
+            />
+            <Button
+              icon="pi pi-copy"
+              v-tooltip.top="'复制密码'"
+              @click="copyPassword"
+              text
+            />
+          </div>
+          <small class="password-note">请将此密码安全地传达给用户，并要求用户首次登录后立即修改密码。</small>
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <Button
+            label="我已记录密码"
+            icon="pi pi-check"
+            @click="closePasswordResetDialog"
+            autofocus
+          />
+        </div>
+      </template>
     </Dialog>
 
     <!-- 项目管理的对话框们 -->
@@ -534,8 +584,11 @@ const searchQuery = reactive({
 // 对话框状态
 const showCreateDialog = ref(false)
 const showApprovalDialog = ref(false)
+const showPasswordResetDialog = ref(false)
 const editingUser = ref<User | null>(null)
 const approvalUser = ref<User | null>(null)
+const resetPasswordUser = ref<User | null>(null)
+const newPassword = ref('')
 
 // 用户项目相关状态
 const selectedUserProjects = ref<string[]>([])
@@ -579,8 +632,7 @@ const departmentOptions = [
 const statusOptions = [
   { label: '待审批', value: UserStatus.PENDING },
   { label: '已审批', value: UserStatus.APPROVED },
-  { label: '已拒绝', value: UserStatus.REJECTED },
-  { label: '活跃', value: UserStatus.ACTIVE }
+  { label: '失效', value: UserStatus.INACTIVE }
 ]
 
 const roleOptions = [
@@ -611,9 +663,8 @@ const getStatusLabel = (status: string) => {
 const getStatusSeverity = (status: string) => {
   switch (status) {
     case UserStatus.PENDING: return 'warning'
-    case UserStatus.APPROVED: 
-    case UserStatus.ACTIVE: return 'success'
-    case UserStatus.REJECTED: return 'danger'
+    case UserStatus.APPROVED: return 'success'
+    case UserStatus.INACTIVE: return 'danger'
     default: return 'info'
   }
 }
@@ -866,33 +917,97 @@ const handleApproval = async () => {
   }
 }
 
-const deleteUser = (user: User) => {
+const deactivateUser = (user: User) => {
   confirm.require({
-    message: `确定要删除用户 "${user.name}" 吗？`,
-    header: '删除确认',
+    message: `确定要将用户 "${user.name}" 设为失效吗？设为失效后该用户将无法登录系统。`,
+    header: '设为失效确认',
     icon: 'pi pi-exclamation-triangle',
     accept: async () => {
       try {
-        await userApi.deleteUser(user.id)
+        await userApi.deleteUser(user.id) // API实际执行的是软删除
         toast.add({
           severity: 'success',
-          summary: '删除成功',
-          detail: '用户删除成功',
+          summary: '操作成功',
+          detail: '用户已设为失效',
           life: 3000
         })
         loadUsers()
       } catch (error: any) {
-        console.error('删除用户失败:', error)
+        console.error('设为失效失败:', error)
         toast.add({
           severity: 'error',
-          summary: '删除失败',
-          detail: error.message || '删除用户时发生错误',
+          summary: '操作失败',
+          detail: error.message || '设为失效时发生错误',
           life: 3000
         })
       }
     }
   })
 }
+
+const resetUserPassword = (user: User) => {
+  confirm.require({
+    message: `确定要重置用户 "${user.name}" 的密码吗？系统将生成新的8位随机密码。`,
+    header: '重置密码确认',
+    icon: 'pi pi-exclamation-triangle',
+    accept: async () => {
+      try {
+        const result = await userApi.resetUserPasswordRandom(user.id)
+        
+        // 设置对话框数据
+        resetPasswordUser.value = user
+        newPassword.value = result.new_password
+        showPasswordResetDialog.value = true
+        
+        // 同时显示简短的成功提示
+        toast.add({
+          severity: 'success',
+          summary: '密码重置成功',
+          detail: '请查看弹出的对话框获取新密码',
+          life: 3000
+        })
+      } catch (error: any) {
+        console.error('重置密码失败:', error)
+        toast.add({
+          severity: 'error',
+          summary: '重置失败',
+          detail: error.message || '重置密码时发生错误',
+          life: 3000
+        })
+      }
+    }
+  })
+}
+
+// 密码重置对话框相关方法
+const copyPassword = async () => {
+  try {
+    await navigator.clipboard.writeText(newPassword.value)
+    toast.add({
+      severity: 'info',
+      summary: '已复制',
+      detail: '密码已复制到剪贴板',
+      life: 2000
+    })
+  } catch (error) {
+    console.error('复制失败:', error)
+    toast.add({
+      severity: 'warn',
+      summary: '复制失败',
+      detail: '请手动复制密码',
+      life: 3000
+    })
+  }
+}
+
+const closePasswordResetDialog = () => {
+  showPasswordResetDialog.value = false
+  resetPasswordUser.value = null
+  newPassword.value = ''
+}
+
+// 保留原来的删除方法名，但修改为软删除逻辑
+const deleteUser = deactivateUser
 
 // 项目管理相关方法
 const handleSelectProject = (project: Project) => {
@@ -1201,6 +1316,87 @@ onMounted(() => {
   color: #666;
   font-size: 0.85rem;
   margin-top: 0.25rem;
+}
+
+/* 密码重置对话框样式 */
+.password-reset-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.reset-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid var(--p-green-500);
+}
+
+.reset-info h3 {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.reset-info p {
+  margin: 0;
+  color: #666;
+}
+
+.new-password-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.new-password-section label {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
+.password-display {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: #f1f3f4;
+  border-radius: 6px;
+  border: 2px solid var(--p-primary-color);
+}
+
+.password-input {
+  flex: 1;
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem;
+  font-weight: bold;
+  letter-spacing: 2px;
+  background: transparent;
+  border: none;
+  color: var(--p-primary-color);
+}
+
+.password-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.password-note {
+  color: #e67e22;
+  font-size: 0.9rem;
+  padding: 0.5rem;
+  background: #fef5e7;
+  border-radius: 4px;
+  border-left: 3px solid #e67e22;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: center;
+  padding: 1rem 0 0 0;
 }
 
 @media (max-width: 768px) {

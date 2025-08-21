@@ -119,6 +119,14 @@ class UserApiService {
   }
 
   /**
+   * 重置用户密码为随机8位密码
+   */
+  async resetUserPasswordRandom(userId: string): Promise<{ message: string; new_password: string }> {
+    const response = await this.apiClient.post<{ message: string; new_password: string }>(`/users/${userId}/reset-password-random`)
+    return response.data
+  }
+
+  /**
    * 用户身份验证
    */
   async authenticateUser(phone: string, password: string): Promise<any> {

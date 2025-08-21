@@ -301,16 +301,33 @@
         <div class="form-group" v-if="editingUser">
           <label>参与项目</label>
           <div class="project-selection">
-            <MultiSelect
-              v-model="selectedUserProjects"
-              :options="projects"
-              option-label="name"
-              option-value="id"
-              placeholder="选择用户参与的项目"
-              :loading="projectLoading"
-              class="w-full"
-              display="chip"
-            />
+            <DataTable
+              :value="allProjects"
+              v-model:selection="selectedProjectsObjects"
+              :loading="loadingProjects"
+              class="project-table"
+              selection-mode="multiple"
+              data-key="id"
+              :scrollable="true"
+              scroll-height="300px"
+            >
+              <Column selection-mode="multiple" header-style="width: 3rem"></Column>
+              <Column field="name" header="项目名称" style="min-width: 200px">
+                <template #body="{ data }">
+                  <div class="project-name">{{ data.name }}</div>
+                </template>
+              </Column>
+              <Column field="description" header="项目描述" style="min-width: 300px">
+                <template #body="{ data }">
+                  <div class="project-description">{{ data.description || '暂无描述' }}</div>
+                </template>
+              </Column>
+              <Column field="created_at" header="创建时间" style="min-width: 150px">
+                <template #body="{ data }">
+                  <div class="project-date">{{ formatDateTime(data.created_at) }}</div>
+                </template>
+              </Column>
+            </DataTable>
             <small class="form-help">选择该用户可以参与的项目</small>
           </div>
         </div>
@@ -522,6 +539,7 @@ const approvalUser = ref<User | null>(null)
 
 // 用户项目相关状态
 const selectedUserProjects = ref<string[]>([])
+const selectedProjectsObjects = ref<Project[]>([])
 const allProjects = ref<Project[]>([])
 const loadingProjects = ref(false)
 
@@ -629,9 +647,11 @@ const loadUserProjects = async (userId: string) => {
   try {
     const response = await userApi.getUserProjects(userId)
     selectedUserProjects.value = response.map(p => p.id)
+    selectedProjectsObjects.value = response
   } catch (error) {
     console.error('加载用户项目失败:', error)
     selectedUserProjects.value = []
+    selectedProjectsObjects.value = []
   }
 }
 
@@ -687,6 +707,7 @@ const resetUserForm = () => {
   
   // 重置项目选择
   selectedUserProjects.value = []
+  selectedProjectsObjects.value = []
   
   Object.keys(formErrors).forEach(key => {
     formErrors[key as keyof typeof formErrors] = ''
@@ -748,8 +769,9 @@ const handleSaveUser = async () => {
       await userApi.updateUser(editingUser.value.id, updateData)
       
       // 更新用户项目关联
-      if (selectedUserProjects.value.length > 0 || editingUser.value.id) {
-        await userApi.updateUserProjects(editingUser.value.id, selectedUserProjects.value)
+      if (selectedProjectsObjects.value.length > 0 || editingUser.value.id) {
+        const projectIds = selectedProjectsObjects.value.map(p => p.id)
+        await userApi.updateUserProjects(editingUser.value.id, projectIds)
       }
       
       toast.add({
@@ -1143,6 +1165,42 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+}
+
+/* 项目选择表格样式 */
+.project-selection {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.project-table {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.project-name {
+  font-weight: 500;
+  color: #333;
+}
+
+.project-description {
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.project-date {
+  color: #888;
+  font-size: 0.85rem;
+  font-family: monospace;
+}
+
+.form-help {
+  color: #666;
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
 }
 
 @media (max-width: 768px) {

@@ -12,12 +12,15 @@
     <!-- 无数据状态 -->
     <div v-else-if="projects.length === 0" class="empty-state">
       <i class="pi pi-folder-open" style="font-size: 3rem; color: #6c757d;"></i>
-      <p>暂无项目数据</p>
+      <p v-if="showActions !== false">暂无项目数据</p>
+      <p v-else>您暂时没有被分配到任何项目</p>
+      <p v-if="showActions === false" class="help-text">请联系管理员为您分配项目权限</p>
       <Button 
         label="创建第一个项目" 
         icon="pi pi-plus" 
         @click="$emit('create-project')"
         size="small"
+        v-if="showActions !== false"
       />
     </div>
 
@@ -38,7 +41,7 @@
                v-tooltip.top="'当前选中'"
             ></i>
           </h4>
-          <div class="project-actions">
+          <div class="project-actions" v-if="showActions !== false">
             <Button 
               icon="pi pi-pencil" 
               severity="secondary" 
@@ -85,6 +88,7 @@
         label="新建项目" 
         icon="pi pi-plus" 
         @click="$emit('create-project')"
+        v-if="showActions !== false"
       />
     </div>
   </div>
@@ -99,6 +103,7 @@ defineProps<{
   projects: Project[]
   loading: boolean
   selectedProject?: Project | null
+  showActions?: boolean // 新增：是否显示操作按钮，默认为true
 }>()
 
 // Emits
@@ -144,6 +149,12 @@ defineEmits<{
   min-height: 200px;
   color: #6c757d;
   text-align: center;
+}
+
+.help-text {
+  font-size: 0.9rem;
+  color: #888;
+  margin-top: 0.5rem;
 }
 
 .projects-grid {

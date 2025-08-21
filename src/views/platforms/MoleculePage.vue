@@ -63,8 +63,8 @@
             />
           </div>
           <Button 
-            label="Project Management" 
-            icon="pi pi-cog" 
+            label="项目切换" 
+            icon="pi pi-refresh" 
             @click="handleProjectManagement"
             class="row-btn"
           />
@@ -668,10 +668,10 @@
       </div>
     </Dialog>
     
-    <!-- 项目管理对话框 -->
+    <!-- 项目切换对话框 -->
     <Dialog 
       v-model:visible="showProjectDialog" 
-      header="项目管理"
+      header="项目切换"
       :modal="true" 
       :closable="true"
       :draggable="false"
@@ -681,14 +681,12 @@
     >
       <div class="project-modal-content">
         <ProjectList 
-          :projects="projects"
+          :projects="userProjects"
           :loading="projectLoading"
           :selectedProject="selectedProject"
+          :showActions="false"
           @select-project="handleSelectProject"
-          @edit-project="handleEditProject"
-          @delete-project="handleDeleteProject"
-          @create-project="handleCreateProject"
-          @refresh="refreshProjects"
+          @refresh="refreshUserProjects"
         />
       </div>
     </Dialog>
@@ -959,6 +957,10 @@ import type { Project } from '@/types/data';
 // 导入API服务
 import { CompoundApiService } from '@/services/compoundApi';
 import { SmilesApiService } from '@/services/smilesApi';
+import { userApi } from '@/services/userApi';
+
+// 导入状态管理
+import { useAuthStore } from '@/stores/auth';
 
 // 使用组合式函数
 const {
@@ -1030,6 +1032,9 @@ const {
   setKetcherFrame
 } = useKetcher();
 
+// 使用认证状态
+const authStore = useAuthStore();
+
 // 计算属性：当前选中项目的显示
 const currentProjectDisplay = computed(() => {
   if (selectedProject.value) {
@@ -1049,6 +1054,9 @@ const currentCompoundImageUrl = computed(() => {
 // 项目切换确认对话框相关
 const showProjectSwitchDialog = ref(false);
 const pendingProject = ref<Project | null>(null);
+
+// 用户项目相关
+const userProjects = ref<Project[]>([]);
 
 // 保存确认对话框相关
 const showSaveConfirmDialog = ref(false);
@@ -1502,6 +1510,31 @@ const createNewProject = async (name: string, description?: string) => {
   }
 };
 
+// 用户项目相关方法
+const refreshUserProjects = async () => {
+  if (!authStore.currentUser?.id) {
+    console.warn('用户未登录，无法加载用户项目');
+    userProjects.value = [];
+    return;
+  }
+  
+  // 如果是访客用户，不调用API，直接返回空列表
+  if (authStore.currentUser.id.startsWith('guest-')) {
+    console.log('访客用户，不加载项目列表');
+    userProjects.value = [];
+    return;
+  }
+  
+  try {
+    const projects = await userApi.getUserProjects(authStore.currentUser.id);
+    userProjects.value = projects;
+    console.log('用户项目加载成功:', projects);
+  } catch (error) {
+    console.error('加载用户项目失败:', error);
+    userProjects.value = [];
+  }
+};
+
 // Filter Drawer相关方法
 const openFilterDrawer = () => {
   showFilterDrawer.value = true;
@@ -1856,11 +1889,16 @@ const initialize = async () => {
   // 先加载列设置
   loadColumnSettings();
   
+  // 确保用户已经认证
+  if (!authStore.isAuthenticated) {
+    await authStore.checkAuth();
+  }
+  
   // 并行加载所有必要的数据
   await Promise.all([
     loadMainParameterOptions(),
     loadProjectTableData(),
-    loadProjects() // 先加载项目列表
+    refreshUserProjects() // 加载用户项目列表而不是所有项目
   ]);
   
   // 默认加载所有化合物数据（不依赖项目筛选，包含不合成的化合物）

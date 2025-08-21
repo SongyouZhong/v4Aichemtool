@@ -7,6 +7,12 @@ const { checkAuth, isLoading } = useAuth();
 
 onMounted(() => {
   checkAuth();
+  
+  // 在控制台显示版本信息，便于调试
+  console.log('🚀 Application Build Info:');
+  console.log('Build Time:', (window as any).__BUILD_TIME__ || 'Unknown');
+  console.log('Version:', (window as any).__VERSION__ || 'Unknown');
+  console.log('Current Time:', new Date().toISOString());
 });
 </script>
 

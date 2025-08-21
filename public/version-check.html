@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>版本信息 - AiChemTool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .version-info {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        .status {
+            text-align: center;
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        .status.success {
+            color: #4CAF50;
+        }
+        .status.warning {
+            color: #FF9800;
+        }
+        .refresh-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            display: block;
+            margin: 20px auto;
+            transition: background 0.3s;
+        }
+        .refresh-btn:hover {
+            background: #45a049;
+        }
+        .cache-info {
+            background: rgba(255, 193, 7, 0.2);
+            border-left: 4px solid #FFC107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .instructions {
+            background: rgba(33, 150, 243, 0.2);
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AiChemTool 版本信息</h1>
+            <p>实时版本检查页面</p>
+        </div>
+
+        <div class="status" id="status">
+            🔄 正在检查版本信息...
+        </div>
+
+        <div class="version-info">
+            <h3>📋 当前版本信息</h3>
+            <div class="info-item">
+                <span><strong>页面加载时间:</strong></span>
+                <span id="pageLoadTime">-</span>
+            </div>
+            <div class="info-item">
+                <span><strong>构建时间:</strong></span>
+                <span id="buildTime">-</span>
+            </div>
+            <div class="info-item">
+                <span><strong>版本号:</strong></span>
+                <span id="version">-</span>
+            </div>
+            <div class="info-item">
+                <span><strong>随机数 (缓存检测):</strong></span>
+                <span id="randomNumber">-</span>
+            </div>
+            <div class="info-item">
+                <span><strong>浏览器用户代理:</strong></span>
+                <span id="userAgent" style="font-size: 12px; word-break: break-all;">-</span>
+            </div>
+        </div>
+
+        <div class="cache-info">
+            <h4>💡 缓存状态判断</h4>
+            <p id="cacheStatus">正在检测...</p>
+        </div>
+
+        <div class="instructions">
+            <h4>🔧 如果看到旧版本，请尝试:</h4>
+            <ul>
+                <li><strong>强制刷新:</strong> Ctrl + F5 (Windows/Linux) 或 Cmd + Shift + R (Mac)</li>
+                <li><strong>清空缓存:</strong> F12 → Network → Disable cache → 刷新</li>
+                <li><strong>无痕模式:</strong> Ctrl + Shift + N (Chrome) 或 Ctrl + Shift + P (Firefox)</li>
+                <li><strong>手动清理:</strong> 浏览器设置 → 清除浏览数据</li>
+            </ul>
+        </div>
+
+        <button class="refresh-btn" onclick="location.reload(true)">
+            🔄 强制刷新页面
+        </button>
+
+        <div class="version-info">
+            <h3>🕒 检查历史</h3>
+            <div id="checkHistory"></div>
+        </div>
+    </div>
+
+    <script>
+        // 记录页面加载时间
+        const pageLoadTime = new Date().toISOString();
+        document.getElementById('pageLoadTime').textContent = pageLoadTime;
+
+        // 生成随机数用于检测缓存
+        const randomNumber = Math.random().toString(36).substring(2, 15);
+        document.getElementById('randomNumber').textContent = randomNumber;
+
+        // 显示用户代理
+        document.getElementById('userAgent').textContent = navigator.userAgent;
+
+        // 检查构建信息
+        const buildTime = window.__BUILD_TIME__ || '未知 (可能是缓存版本)';
+        const version = window.__VERSION__ || '未知 (可能是缓存版本)';
+
+        document.getElementById('buildTime').textContent = buildTime;
+        document.getElementById('version').textContent = version;
+
+        // 判断缓存状态
+        function checkCacheStatus() {
+            const status = document.getElementById('status');
+            const cacheStatus = document.getElementById('cacheStatus');
+
+            if (buildTime === '未知 (可能是缓存版本)') {
+                status.className = 'status warning';
+                status.innerHTML = '⚠️ 检测到可能的缓存问题';
+                cacheStatus.innerHTML = `
+                    <strong>⚠️ 警告:</strong> 无法获取构建信息，可能原因:<br>
+                    • 浏览器缓存了旧版本的文件<br>
+                    • 服务器配置问题<br>
+                    • 网络问题<br>
+                    <strong>建议:</strong> 使用强制刷新或清除浏览器缓存
+                `;
+            } else {
+                status.className = 'status success';
+                status.innerHTML = '✅ 版本信息正常';
+                
+                // 检查版本是否是最新的 (基于时间戳)
+                const versionTime = version.split('-')[0] + version.split('-')[1];
+                const now = new Date();
+                const versionDate = new Date(
+                    versionTime.substring(0, 4),
+                    versionTime.substring(4, 6) - 1,
+                    versionTime.substring(6, 8),
+                    versionTime.substring(8, 10),
+                    versionTime.substring(10, 12)
+                );
+                
+                const timeDiff = now - versionDate;
+                const hoursDiff = timeDiff / (1000 * 60 * 60);
+                
+                if (hoursDiff > 24) {
+                    cacheStatus.innerHTML = `
+                        <strong>🕐 提示:</strong> 当前版本构建于 ${hoursDiff.toFixed(1)} 小时前，
+                        如果有更新版本，请尝试强制刷新页面。
+                    `;
+                } else {
+                    cacheStatus.innerHTML = `
+                        <strong>✅ 正常:</strong> 当前版本较新 (${hoursDiff.toFixed(1)} 小时前构建)，
+                        缓存状态正常。
+                    `;
+                }
+            }
+        }
+
+        // 保存检查历史到本地存储
+        function saveCheckHistory() {
+            const history = JSON.parse(localStorage.getItem('versionCheckHistory') || '[]');
+            const newEntry = {
+                time: pageLoadTime,
+                version: version,
+                buildTime: buildTime,
+                random: randomNumber,
+                userAgent: navigator.userAgent.substring(0, 50) + '...'
+            };
+            
+            history.unshift(newEntry);
+            if (history.length > 10) history.pop(); // 只保留最近10次
+            
+            localStorage.setItem('versionCheckHistory', JSON.stringify(history));
+            displayCheckHistory(history);
+        }
+
+        // 显示检查历史
+        function displayCheckHistory(history) {
+            const container = document.getElementById('checkHistory');
+            if (history.length === 0) {
+                container.innerHTML = '<p>暂无历史记录</p>';
+                return;
+            }
+
+            const historyHtml = history.map((entry, index) => `
+                <div class="info-item" style="flex-direction: column; align-items: flex-start;">
+                    <div style="display: flex; justify-content: space-between; width: 100%;">
+                        <strong>#${index + 1}</strong>
+                        <span style="font-size: 12px;">${entry.time}</span>
+                    </div>
+                    <div style="font-size: 12px; margin-top: 5px;">
+                        版本: ${entry.version} | 构建: ${entry.buildTime} | 随机数: ${entry.random}
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = historyHtml;
+        }
+
+        // 初始化
+        checkCacheStatus();
+        saveCheckHistory();
+
+        // 每10秒更新一次时间显示
+        setInterval(() => {
+            const now = new Date().toISOString();
+            const timeDisplay = document.querySelector('.status');
+            if (timeDisplay.classList.contains('success')) {
+                timeDisplay.innerHTML = `✅ 版本信息正常 (当前时间: ${now.substring(11, 19)})`;
+            }
+        }, 10000);
+
+        console.log('🚀 版本检查页面已加载');
+        console.log('页面加载时间:', pageLoadTime);
+        console.log('构建时间:', buildTime);
+        console.log('版本:', version);
+        console.log('随机数:', randomNumber);
+    </script>
+</body>
+</html>

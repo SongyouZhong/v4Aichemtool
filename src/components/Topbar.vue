@@ -17,7 +17,7 @@ const handleLogout = () => {
 };
 
 const isGuestUser = computed(() => {
-  return user.value?.username === 'Guest User';
+  return user.value?.name === '访客用户';
 });
 
 const handleSignUp = () => {
@@ -69,7 +69,7 @@ const navigateToProtein = () => {
         />
         <div v-if="isAuthenticated && user" class="user-info">
           <span class="username" :class="{ 'guest-user': isGuestUser }">
-            {{ isGuestUser ? 'Guest Mode' : user.username }}
+            {{ isGuestUser ? 'Guest Mode' : user.name }}
           </span>
         </div>
         <Button 

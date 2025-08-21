@@ -1,172 +1,235 @@
 <template>
   <div class="user-management">
     <div class="page-header">
-      <h1>用户管理</h1>
-      <div class="header-actions">
-        <Button
-          label="新增用户"
-          icon="pi pi-plus"
-          @click="showCreateDialog = true"
-        />
-      </div>
+      <h1>管理中心</h1>
     </div>
 
-    <!-- 搜索和筛选区域 -->
-    <div class="search-filters">
-      <div class="search-row">
-        <div class="search-item">
-          <label>姓名/手机号</label>
-          <InputText
-            v-model="searchQuery.keyword"
-            placeholder="请输入姓名或手机号"
-            @keyup.enter="handleSearch"
-          />
-        </div>
-        <div class="search-item">
-          <label>部门</label>
-          <Dropdown
-            v-model="searchQuery.department"
-            :options="departmentOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="选择部门"
-            show-clear
-          />
-        </div>
-        <div class="search-item">
-          <label>状态</label>
-          <Dropdown
-            v-model="searchQuery.status"
-            :options="statusOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="选择状态"
-            show-clear
-          />
-        </div>
-        <div class="search-item">
-          <label>角色</label>
-          <Dropdown
-            v-model="searchQuery.role"
-            :options="roleOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="选择角色"
-            show-clear
-          />
-        </div>
-      </div>
-      <div class="search-actions">
-        <Button
-          label="搜索"
-          icon="pi pi-search"
-          @click="handleSearch"
-        />
-        <Button
-          label="重置"
-          icon="pi pi-refresh"
-          severity="secondary"
-          @click="handleReset"
-        />
-      </div>
-    </div>
+    <!-- Tabs -->
+    <Tabs v-model:value="activeTab" class="management-tabs">
+      <TabList>
+        <Tab value="users">
+          <i class="pi pi-users"></i>
+          <span>用户管理</span>
+        </Tab>
+        <Tab value="projects">
+          <i class="pi pi-folder"></i>
+          <span>项目管理</span>
+        </Tab>
+      </TabList>
+      
+      <TabPanels>
+        <!-- 用户管理 Tab -->
+        <TabPanel value="users">
+          <div class="tab-content">
+            <div class="tab-header">
+              <h2>用户管理</h2>
+              <div class="header-actions">
+                <Button
+                  label="新增用户"
+                  icon="pi pi-plus"
+                  @click="showCreateDialog = true"
+                />
+              </div>
+            </div>
 
-    <!-- 用户表格 -->
-    <div class="table-container">
-      <DataTable
-        :value="users"
-        :loading="loading"
-        paginator
-        :rows="pageSize"
-        :total-records="totalRecords"
-        :lazy="true"
-        @page="onPageChange"
-        show-gridlines
-        striped-rows
-        responsive-layout="scroll"
-      >
-        <Column field="name" header="姓名" sortable>
-          <template #body="{ data }">
-            <span class="user-name">{{ data.name }}</span>
-          </template>
-        </Column>
-        
-        <Column field="phone" header="手机号" sortable>
-          <template #body="{ data }">
-            <span class="user-phone">{{ data.phone }}</span>
-          </template>
-        </Column>
-        
-        <Column field="department" header="部门" sortable>
-          <template #body="{ data }">
-            <span class="user-department">{{ data.department }}</span>
-          </template>
-        </Column>
-        
-        <Column field="role" header="角色" sortable>
-          <template #body="{ data }">
-            <Tag
-              :value="getRoleLabel(data.role)"
-              :severity="getRoleSeverity(data.role)"
-            />
-          </template>
-        </Column>
-        
-        <Column field="status" header="状态" sortable>
-          <template #body="{ data }">
-            <Tag
-              :value="getStatusLabel(data.status)"
-              :severity="getStatusSeverity(data.status)"
-            />
-          </template>
-        </Column>
-        
-        <Column field="create_time" header="创建时间" sortable>
-          <template #body="{ data }">
-            <span>{{ formatDateTime(data.create_time) }}</span>
-          </template>
-        </Column>
-        
-        <Column header="操作" :exportable="false">
-          <template #body="{ data }">
-            <div class="action-buttons">
-              <Button
-                icon="pi pi-pencil"
-                severity="info"
-                text
-                rounded
-                @click="editUser(data)"
-                v-tooltip.top="'编辑'"
-              />
-              <Button
-                icon="pi pi-check"
-                severity="success"
-                text
-                rounded
-                @click="approveUser(data)"
-                v-tooltip.top="'审批'"
-                v-if="data.status === UserStatus.PENDING"
-              />
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                @click="deleteUser(data)"
-                v-tooltip.top="'删除'"
+            <!-- 搜索和筛选区域 -->
+            <div class="search-filters">
+              <div class="search-row">
+                <div class="search-item">
+                  <label>姓名/手机号</label>
+                  <InputText
+                    v-model="searchQuery.keyword"
+                    placeholder="请输入姓名或手机号"
+                    @keyup.enter="handleSearch"
+                  />
+                </div>
+                <div class="search-item">
+                  <label>部门</label>
+                  <Dropdown
+                    v-model="searchQuery.department"
+                    :options="departmentOptions"
+                    option-label="label"
+                    option-value="value"
+                    placeholder="选择部门"
+                    show-clear
+                  />
+                </div>
+                <div class="search-item">
+                  <label>状态</label>
+                  <Dropdown
+                    v-model="searchQuery.status"
+                    :options="statusOptions"
+                    option-label="label"
+                    option-value="value"
+                    placeholder="选择状态"
+                    show-clear
+                  />
+                </div>
+                <div class="search-item">
+                  <label>角色</label>
+                  <Dropdown
+                    v-model="searchQuery.role"
+                    :options="roleOptions"
+                    option-label="label"
+                    option-value="value"
+                    placeholder="选择角色"
+                    show-clear
+                  />
+                </div>
+              </div>
+              <div class="search-actions">
+                <Button
+                  label="搜索"
+                  icon="pi pi-search"
+                  @click="handleSearch"
+                />
+                <Button
+                  label="重置"
+                  icon="pi pi-refresh"
+                  severity="secondary"
+                  @click="handleReset"
+                />
+              </div>
+            </div>
+
+            <!-- 用户表格 -->
+            <div class="table-container">
+              <DataTable
+                :value="users"
+                :loading="loading"
+                paginator
+                :rows="pageSize"
+                :total-records="totalRecords"
+                :lazy="true"
+                @page="onPageChange"
+                show-gridlines
+                striped-rows
+                responsive-layout="scroll"
+              >
+                <Column field="name" header="姓名" sortable>
+                  <template #body="{ data }">
+                    <span class="user-name">{{ data.name }}</span>
+                  </template>
+                </Column>
+                
+                <Column field="phone" header="手机号" sortable>
+                  <template #body="{ data }">
+                    <span class="user-phone">{{ data.phone }}</span>
+                  </template>
+                </Column>
+                
+                <Column field="department" header="部门" sortable>
+                  <template #body="{ data }">
+                    <span class="user-department">{{ data.department }}</span>
+                  </template>
+                </Column>
+                
+                <Column field="role" header="角色" sortable>
+                  <template #body="{ data }">
+                    <Tag
+                      :value="getRoleLabel(data.role)"
+                      :severity="getRoleSeverity(data.role)"
+                    />
+                  </template>
+                </Column>
+                
+                <Column field="status" header="状态" sortable>
+                  <template #body="{ data }">
+                    <Tag
+                      :value="getStatusLabel(data.status)"
+                      :severity="getStatusSeverity(data.status)"
+                    />
+                  </template>
+                </Column>
+                
+                <Column field="create_time" header="创建时间" sortable>
+                  <template #body="{ data }">
+                    <span>{{ formatDateTime(data.create_time) }}</span>
+                  </template>
+                </Column>
+                
+                <Column header="操作" :exportable="false">
+                  <template #body="{ data }">
+                    <div class="action-buttons">
+                      <Button
+                        icon="pi pi-pencil"
+                        severity="info"
+                        text
+                        rounded
+                        @click="editUser(data)"
+                        v-tooltip.top="'编辑'"
+                      />
+                      <Button
+                        icon="pi pi-check"
+                        severity="success"
+                        text
+                        rounded
+                        @click="approveUser(data)"
+                        v-tooltip.top="'审批'"
+                        v-if="data.status === UserStatus.PENDING"
+                      />
+                      <Button
+                        icon="pi pi-trash"
+                        severity="danger"
+                        text
+                        rounded
+                        @click="deleteUser(data)"
+                        v-tooltip.top="'删除'"
+                      />
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
+          </div>
+        </TabPanel>
+
+        <!-- 项目管理 Tab -->
+        <TabPanel value="projects">
+          <div class="tab-content">
+            <div class="tab-header">
+              <h2>项目管理</h2>
+              <div class="header-actions">
+                <Button
+                  label="刷新项目"
+                  icon="pi pi-refresh"
+                  severity="secondary"
+                  @click="refreshProjects"
+                  :loading="projectLoading"
+                />
+                <Button
+                  label="新建项目"
+                  icon="pi pi-plus"
+                  @click="showCreateProjectDialog = true"
+                />
+              </div>
+            </div>
+
+            <!-- 项目列表 -->
+            <div class="project-container">
+              <ProjectList 
+                :projects="projects"
+                :loading="projectLoading"
+                :selectedProject="selectedProject"
+                @select-project="handleSelectProject"
+                @edit-project="editProject"
+                @delete-project="deleteProject"
+                @create-project="showCreateProjectDialog = true"
+                @refresh="refreshProjects"
               />
             </div>
-          </template>
-        </Column>
-      </DataTable>
-    </div>
+          </div>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
 
+    <!-- 用户管理的对话框们 -->
     <!-- 创建/编辑用户对话框 -->
     <Dialog
       v-model:visible="showCreateDialog"
       :header="editingUser ? '编辑用户' : '新增用户'"
       modal
-      :style="{ width: '500px' }"
+      :style="{ width: '700px' }"
     >
       <form @submit.prevent="handleSaveUser" class="user-form">
         <div class="form-group">
@@ -232,6 +295,24 @@
             option-value="value"
             placeholder="请选择角色"
           />
+        </div>
+
+        <!-- 参与项目选择 (仅编辑时显示) -->
+        <div class="form-group" v-if="editingUser">
+          <label>参与项目</label>
+          <div class="project-selection">
+            <MultiSelect
+              v-model="selectedUserProjects"
+              :options="projects"
+              option-label="name"
+              option-value="id"
+              placeholder="选择用户参与的项目"
+              :loading="projectLoading"
+              class="w-full"
+              display="chip"
+            />
+            <small class="form-help">选择该用户可以参与的项目</small>
+          </div>
         </div>
 
         <div class="dialog-actions">
@@ -306,6 +387,53 @@
         </div>
       </div>
     </Dialog>
+
+    <!-- 项目管理的对话框们 -->
+    <!-- 创建/编辑项目对话框 -->
+    <Dialog
+      v-model:visible="showCreateProjectDialog"
+      :header="editingProject ? '编辑项目' : '新建项目'"
+      modal
+      :style="{ width: '500px' }"
+    >
+      <form @submit.prevent="handleSaveProject" class="project-form">
+        <div class="form-group">
+          <label for="projectName">项目名称 *</label>
+          <InputText
+            id="projectName"
+            v-model="projectForm.name"
+            placeholder="请输入项目名称"
+            :class="{ 'p-invalid': projectFormErrors.name }"
+            required
+          />
+          <small v-if="projectFormErrors.name" class="p-error">{{ projectFormErrors.name }}</small>
+        </div>
+
+        <div class="form-group">
+          <label for="projectDescription">项目描述</label>
+          <Textarea
+            id="projectDescription"
+            v-model="projectForm.description"
+            placeholder="请输入项目描述（可选）"
+            rows="3"
+            auto-resize
+          />
+        </div>
+
+        <div class="dialog-actions">
+          <Button
+            label="取消"
+            severity="secondary"
+            @click="showCreateProjectDialog = false"
+          />
+          <Button
+            type="submit"
+            :label="editingProject ? '更新' : '创建'"
+            :loading="projectSaving"
+          />
+        </div>
+      </form>
+    </Dialog>
   </div>
 </template>
 
@@ -322,14 +450,28 @@ import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
 import Password from 'primevue/password'
 import RadioButton from 'primevue/radiobutton'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
+import Textarea from 'primevue/textarea'
+import MultiSelect from 'primevue/multiselect'
+import ProjectList from '@/components/ProjectList.vue'
 import { userApi } from '@/services/userApi'
-import type { User, UserCreate, UserUpdate } from '@/types/user'
+import { ProjectApiService } from '@/services/projectApi'
+import { useProjectManagement } from '@/composables/useProjectManagement'
+import type { User, UserCreate, UserUpdate, UserApproval } from '@/types/user'
 import { UserStatus, UserRole } from '@/types/user'
+import type { Project } from '@/types/data'
 
 const toast = useToast()
 const confirm = useConfirm()
 
-// 数据状态
+// Tabs 状态
+const activeTab = ref('users')
+
+// 用户管理相关数据状态
 const users = ref<User[]>([])
 const loading = ref(false)
 const saving = ref(false)
@@ -337,6 +479,32 @@ const approving = ref(false)
 const totalRecords = ref(0)
 const pageSize = ref(10)
 const currentPage = ref(1)
+
+// 项目管理相关数据状态
+const {
+  projects,
+  selectedProject,
+  loading: projectLoading,
+  createProject,
+  updateProject,
+  deleteProject: deleteProjectApi,
+  loadProjects: refreshProjects
+} = useProjectManagement()
+
+// 项目管理状态
+const showCreateProjectDialog = ref(false)
+const editingProject = ref<Project | null>(null)
+const projectSaving = ref(false)
+
+// 项目表单数据
+const projectForm = reactive({
+  name: '',
+  description: ''
+})
+
+const projectFormErrors = reactive({
+  name: ''
+})
 
 // 搜索条件
 const searchQuery = reactive({
@@ -352,6 +520,11 @@ const showApprovalDialog = ref(false)
 const editingUser = ref<User | null>(null)
 const approvalUser = ref<User | null>(null)
 
+// 用户项目相关状态
+const selectedUserProjects = ref<string[]>([])
+const allProjects = ref<Project[]>([])
+const loadingProjects = ref(false)
+
 // 表单数据
 const userForm = reactive<UserCreate>({
   name: '',
@@ -361,7 +534,7 @@ const userForm = reactive<UserCreate>({
   role: UserRole.USER
 })
 
-const approvalForm = reactive({
+const approvalForm = reactive<UserApproval>({
   status: UserStatus.APPROVED,
   role: UserRole.USER
 })
@@ -432,6 +605,36 @@ const formatDateTime = (dateStr: string) => {
 }
 
 // 数据操作
+// 加载所有项目列表
+const loadAllProjects = async () => {
+  try {
+    loadingProjects.value = true
+    const response = await ProjectApiService.getProjects()
+    allProjects.value = response.items || response
+  } catch (error) {
+    console.error('加载项目列表失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '错误',
+      detail: '加载项目列表失败',
+      life: 3000
+    })
+  } finally {
+    loadingProjects.value = false
+  }
+}
+
+// 加载用户的项目
+const loadUserProjects = async (userId: string) => {
+  try {
+    const response = await userApi.getUserProjects(userId)
+    selectedUserProjects.value = response.map(p => p.id)
+  } catch (error) {
+    console.error('加载用户项目失败:', error)
+    selectedUserProjects.value = []
+  }
+}
+
 const loadUsers = async () => {
   loading.value = true
   try {
@@ -481,6 +684,9 @@ const resetUserForm = () => {
   userForm.department = ''
   userForm.password = ''
   userForm.role = UserRole.USER
+  
+  // 重置项目选择
+  selectedUserProjects.value = []
   
   Object.keys(formErrors).forEach(key => {
     formErrors[key as keyof typeof formErrors] = ''
@@ -540,6 +746,12 @@ const handleSaveUser = async () => {
         role: userForm.role
       }
       await userApi.updateUser(editingUser.value.id, updateData)
+      
+      // 更新用户项目关联
+      if (selectedUserProjects.value.length > 0 || editingUser.value.id) {
+        await userApi.updateUserProjects(editingUser.value.id, selectedUserProjects.value)
+      }
+      
       toast.add({
         severity: 'success',
         summary: '更新成功',
@@ -574,13 +786,20 @@ const handleSaveUser = async () => {
   }
 }
 
-const editUser = (user: User) => {
+const editUser = async (user: User) => {
   editingUser.value = user
   userForm.name = user.name
   userForm.phone = user.phone
   userForm.department = user.department
   userForm.role = user.role
   userForm.password = '' // 编辑时不需要密码
+  
+  // 加载项目数据
+  await loadAllProjects()
+  if (user.id) {
+    await loadUserProjects(user.id)
+  }
+  
   showCreateDialog.value = true
 }
 
@@ -653,9 +872,123 @@ const deleteUser = (user: User) => {
   })
 }
 
+// 项目管理相关方法
+const handleSelectProject = (project: Project) => {
+  selectedProject.value = project
+  toast.add({
+    severity: 'info',
+    summary: '项目已选中',
+    detail: `已选中项目: ${project.name}`,
+    life: 3000
+  })
+}
+
+const editProject = (project: Project) => {
+  editingProject.value = project
+  projectForm.name = project.name
+  projectForm.description = project.description || ''
+  showCreateProjectDialog.value = true
+}
+
+const deleteProject = (project: Project) => {
+  confirm.require({
+    message: `确定要删除项目 "${project.name}" 吗？`,
+    header: '删除确认',
+    icon: 'pi pi-exclamation-triangle',
+    accept: async () => {
+      try {
+        await deleteProjectApi(project.id)
+        toast.add({
+          severity: 'success',
+          summary: '删除成功',
+          detail: '项目删除成功',
+          life: 3000
+        })
+        await refreshProjects()
+      } catch (error: any) {
+        console.error('删除项目失败:', error)
+        toast.add({
+          severity: 'error',
+          summary: '删除失败',
+          detail: error.message || '删除项目时发生错误',
+          life: 3000
+        })
+      }
+    }
+  })
+}
+
+const resetProjectForm = () => {
+  projectForm.name = ''
+  projectForm.description = ''
+  projectFormErrors.name = ''
+}
+
+const validateProjectForm = () => {
+  projectFormErrors.name = ''
+  
+  if (!projectForm.name.trim()) {
+    projectFormErrors.name = '请输入项目名称'
+    return false
+  }
+  
+  return true
+}
+
+const handleSaveProject = async () => {
+  if (!validateProjectForm()) {
+    return
+  }
+
+  projectSaving.value = true
+  try {
+    if (editingProject.value) {
+      // 更新项目
+      await updateProject(editingProject.value.id, {
+        name: projectForm.name,
+        description: projectForm.description
+      })
+      toast.add({
+        severity: 'success',
+        summary: '更新成功',
+        detail: '项目信息更新成功',
+        life: 3000
+      })
+    } else {
+      // 创建项目
+      await createProject({
+        name: projectForm.name,
+        description: projectForm.description
+      })
+      toast.add({
+        severity: 'success',
+        summary: '创建成功',
+        detail: '项目创建成功',
+        life: 3000
+      })
+    }
+    
+    showCreateProjectDialog.value = false
+    editingProject.value = null
+    resetProjectForm()
+    await refreshProjects()
+  } catch (error: any) {
+    console.error('保存项目失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '保存失败',
+      detail: error.message || '保存项目时发生错误',
+      life: 3000
+    })
+  } finally {
+    projectSaving.value = false
+  }
+}
+
 // 组件挂载时加载数据
 onMounted(() => {
   loadUsers()
+  refreshProjects()
 })
 </script>
 
@@ -777,8 +1110,49 @@ onMounted(() => {
   color: #666;
 }
 
+/* Tabs 样式 */
+.management-tabs {
+  margin-bottom: 1.5rem;
+}
+
+.tab-content {
+  padding: 1rem 0;
+}
+
+.tab-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.tab-header h2 {
+  color: var(--p-primary-color);
+  margin: 0;
+}
+
+/* 项目管理样式 */
+.project-container {
+  background: white;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.project-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
 @media (max-width: 768px) {
   .page-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .tab-header {
     flex-direction: column;
     gap: 1rem;
     align-items: stretch;

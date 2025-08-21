@@ -2,7 +2,8 @@
 
 import { ApiClient } from './apiClient'
 import type { PaginatedResponse } from './apiClient'
-import type { User, UserRegister, UserCreate, UserUpdate, UserListQuery } from '@/types/user'
+import type { User, UserRegister, UserCreate, UserUpdate, UserListQuery, UserApproval, UserProjectsUpdate } from '@/types/user'
+import type { Project } from '@/types/data'
 
 class UserApiService {
   private apiClient: ApiClient
@@ -105,7 +106,7 @@ class UserApiService {
   /**
    * 审批用户
    */
-  async approveUser(userId: string, approvalData: { status: string; role: string }): Promise<User> {
+  async approveUser(userId: string, approvalData: UserApproval): Promise<User> {
     const response = await this.apiClient.post<User>(`/users/${userId}/approve`, approvalData)
     return response.data
   }
@@ -138,6 +139,36 @@ class UserApiService {
       }
       throw error
     }
+  }
+
+  /**
+   * 获取用户参与的项目列表
+   */
+  async getUserProjects(userId: string): Promise<Project[]> {
+    const response = await this.apiClient.get<Project[]>(`/users/${userId}/projects`)
+    return response.data
+  }
+
+  /**
+   * 更新用户的项目关联
+   */
+  async updateUserProjects(userId: string, projectIds: string[]): Promise<Project[]> {
+    const response = await this.apiClient.put<Project[]>(`/users/${userId}/projects`, { project_ids: projectIds })
+    return response.data
+  }
+
+  /**
+   * 将用户添加到项目
+   */
+  async addUserToProject(userId: string, projectId: string): Promise<void> {
+    await this.apiClient.post(`/users/${userId}/projects`, { project_id: projectId })
+  }
+
+  /**
+   * 将用户从项目中移除
+   */
+  async removeUserFromProject(userId: string, projectId: string): Promise<void> {
+    await this.apiClient.delete(`/users/${userId}/projects/${projectId}`)
   }
 }
 

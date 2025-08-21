@@ -47,6 +47,15 @@ export interface UserUpdate {
   role?: UserRole
 }
 
+export interface UserApproval {
+  status: UserStatus
+  role: UserRole
+}
+
+export interface UserProjectsUpdate {
+  project_ids: string[]
+}
+
 export interface UserListQuery {
   page?: number
   size?: number

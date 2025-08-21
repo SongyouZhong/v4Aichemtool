@@ -13,7 +13,7 @@
       <!-- Small Molecule Platform -->
       <section class="small-molecule-platform">
         <div class="container section-title">
-          <h2>小分子平台</h2>
+          <h2>小分子信息管理</h2>
         </div>
         
         <div class="container card-container">
@@ -48,36 +48,36 @@ const smallMoleculeTools = ref<SmallMoleculeTool[]>([
 
   {
     title: '化合物录入模块',
-    category: 'Data Management/Input/Analysis',
-    description: 'Comprehensive data input and management platform for chemical and molecular data. Features customizable input forms and structured data tables for efficient data organization.',
-    buttonText: 'Access Platform',
+    category: '化合物管理、输入与分析',
+    description: '用于录入化合物信息的模块，支持化合物的基本信息录入、编辑和查询。包括化学结构、分子式、分子量等信息的管理功能。',
+    buttonText: '访问',
     type: 'data-input'
   },
   {
     title: '合成录入模块',
     category: '合成结果数据录入',
-    description: 'Comprehensive data input and management platform for chemical and molecular data. Features customizable input forms and structured data tables for efficient data organization.',
-    buttonText: 'Access Platform',
+    description: '用于录入合成结果信息的模块，支持合成结果的基本信息录入、编辑和查询等信息的管理功能。',
+    buttonText: '访问',
     type: 'synthetic-input'
   },
   {
     title: '活性录入模块',
-    category: 'Activity Data Input/Management',
+    category: '活性数据录入与管理',
     description: '活性数据录入和管理系统，支持化合物活性数据的录入、编辑和查询。包括Ki、IC50、EC50等活性类型的数据管理功能。',
     buttonText: '录入活性',
     type: 'activity-input'
   },
   {
     title: '检测方法管理模块',
-    category: 'Assay Management/Configuration',
+    category: '检测方法管理/配置',
     description: '检测方法管理系统，支持检测方法的创建、编辑、删除和查询功能。为活性数据录入提供检测方法配置支持。',
     buttonText: '管理检测方法',
     type: 'assay-management'
   },
   {
     title: '用户管理模块',
-    category: 'User Management/Administration',
-    description: '用户管理系统，支持用户的创建、编辑、删除和查询功能。包括用户注册审批、角色分配和权限管理功能。',
+    category: '用户和项目管理',
+    description: '用户与项目管理系统，支持用户的创建、编辑、删除和查询功能。包括用户注册审批、角色分配和权限管理功能。',
     buttonText: '管理用户',
     type: 'user-management'
   }

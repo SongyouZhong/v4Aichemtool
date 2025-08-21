@@ -18,6 +18,7 @@ export interface User {
   phone: string
   department: string
   role: UserRole
+  role_id?: string  // 新增角色ID字段
   status: UserStatus
   create_time: string
   update_time: string

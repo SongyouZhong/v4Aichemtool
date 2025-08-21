@@ -15,6 +15,14 @@
           <i class="pi pi-folder"></i>
           <span>项目管理</span>
         </Tab>
+        <Tab value="roles">
+          <i class="pi pi-shield"></i>
+          <span>角色管理</span>
+        </Tab>
+        <Tab value="permissions">
+          <i class="pi pi-key"></i>
+          <span>权限管理</span>
+        </Tab>
       </TabList>
       
       <TabPanels>
@@ -27,7 +35,7 @@
                 <Button
                   label="新增用户"
                   icon="pi pi-plus"
-                  @click="showCreateDialog = true"
+                  @click="showCreateDialog = true; resetUserForm(); editingUser = null"
                 />
               </div>
             </div>
@@ -210,7 +218,7 @@
                 <Button
                   label="新建项目"
                   icon="pi pi-plus"
-                  @click="showCreateProjectDialog = true"
+                  @click="showCreateProjectDialog = true; resetProjectForm(); editingProject = null"
                 />
               </div>
             </div>
@@ -227,6 +235,273 @@
                 @create-project="showCreateProjectDialog = true"
                 @refresh="refreshProjects"
               />
+            </div>
+          </div>
+        </TabPanel>
+
+        <!-- 角色管理Tab -->
+        <TabPanel value="roles">
+          <div class="tab-content">
+            <div class="tab-header">
+              <h2>角色管理</h2>
+              <div class="header-actions">
+                <Button
+                  label="新增角色"
+                  icon="pi pi-plus"
+                  @click="showCreateRoleDialog = true; resetRoleForm(); editingRole = null; loadAllPermissions()"
+                />
+              </div>
+            </div>
+
+            <!-- 角色搜索筛选 -->
+            <div class="search-filters">
+              <div class="search-row">
+                <div class="search-item">
+                  <label>关键词</label>
+                  <InputText
+                    v-model="roleSearchQuery.keyword"
+                    placeholder="搜索角色名称、描述"
+                    @keyup.enter="handleRoleSearch"
+                  />
+                </div>
+                <div class="search-item">
+                  <label>状态</label>
+                  <Dropdown
+                    v-model="roleSearchQuery.is_active"
+                    :options="activeOptions"
+                    option-label="label"
+                    option-value="value"
+                    placeholder="选择状态"
+                    show-clear
+                  />
+                </div>
+                <div class="search-item">
+                  <label>类型</label>
+                  <Dropdown
+                    v-model="roleSearchQuery.is_system"
+                    :options="systemOptions"
+                    option-label="label"
+                    option-value="value"
+                    placeholder="选择类型"
+                    show-clear
+                  />
+                </div>
+              </div>
+              <div class="search-actions">
+                <Button
+                  label="搜索"
+                  icon="pi pi-search"
+                  @click="handleRoleSearch"
+                />
+                <Button
+                  label="重置"
+                  icon="pi pi-refresh"
+                  severity="secondary"
+                  @click="handleRoleReset"
+                />
+              </div>
+            </div>
+
+            <!-- 角色表格 -->
+            <div class="table-container">
+              <DataTable
+                :value="roles"
+                :loading="roleLoading"
+                paginator
+                :rows="rolePageSize"
+                :total-records="roleTotalRecords"
+                :lazy="true"
+                @page="onRolePageChange"
+                show-gridlines
+                striped-rows
+                responsive-layout="scroll"
+              >
+                <Column field="name" header="角色名称" sortable>
+                  <template #body="{ data }">
+                    <span class="role-name">{{ data.name }}</span>
+                  </template>
+                </Column>
+                <Column field="description" header="角色描述">
+                  <template #body="{ data }">
+                    <span class="role-description">{{ data.description || '-' }}</span>
+                  </template>
+                </Column>
+                <Column field="is_system" header="类型">
+                  <template #body="{ data }">
+                    <Tag
+                      :value="data.is_system ? '系统角色' : '自定义角色'"
+                      :severity="data.is_system ? 'warning' : 'info'"
+                    />
+                  </template>
+                </Column>
+                <Column field="is_active" header="状态">
+                  <template #body="{ data }">
+                    <Tag
+                      :value="data.is_active ? '启用' : '禁用'"
+                      :severity="data.is_active ? 'success' : 'danger'"
+                    />
+                  </template>
+                </Column>
+                <Column field="create_time" header="创建时间" sortable>
+                  <template #body="{ data }">
+                    <span>{{ formatDateTime(data.create_time) }}</span>
+                  </template>
+                </Column>
+                <Column header="操作" :style="{ width: '200px' }">
+                  <template #body="{ data }">
+                    <div class="action-buttons">
+                      <Button
+                        icon="pi pi-pencil"
+                        size="small"
+                        text
+                        @click="editRole(data)"
+                        v-tooltip="'编辑'"
+                        :disabled="data.is_system"
+                      />
+                      <Button
+                        icon="pi pi-trash"
+                        size="small"
+                        text
+                        severity="danger"
+                        @click="deleteRole(data)"
+                        v-tooltip="'删除'"
+                        :disabled="data.is_system"
+                      />
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
+            </div>
+          </div>
+        </TabPanel>
+
+        <!-- 权限管理Tab -->
+        <TabPanel value="permissions">
+          <div class="tab-content">
+            <div class="tab-header">
+              <h2>权限管理</h2>
+              <div class="header-actions">
+                <Button
+                  label="新增权限"
+                  icon="pi pi-plus"
+                  @click="showCreatePermissionDialog = true; resetPermissionForm(); editingPermission = null"
+                />
+              </div>
+            </div>
+
+            <!-- 权限搜索筛选 -->
+            <div class="search-filters">
+              <div class="search-row">
+                <div class="search-item">
+                  <label>关键词</label>
+                  <InputText
+                    v-model="permissionSearchQuery.keyword"
+                    placeholder="搜索权限名称、代码"
+                    @keyup.enter="handlePermissionSearch"
+                  />
+                </div>
+                <div class="search-item">
+                  <label>模块</label>
+                  <Dropdown
+                    v-model="permissionSearchQuery.module"
+                    :options="permissionModules.map(m => ({ label: m, value: m }))"
+                    option-label="label"
+                    option-value="value"
+                    placeholder="选择模块"
+                    show-clear
+                  />
+                </div>
+                <div class="search-item">
+                  <label>状态</label>
+                  <Dropdown
+                    v-model="permissionSearchQuery.is_active"
+                    :options="activeOptions"
+                    option-label="label"
+                    option-value="value"
+                    placeholder="选择状态"
+                    show-clear
+                  />
+                </div>
+              </div>
+              <div class="search-actions">
+                <Button
+                  label="搜索"
+                  icon="pi pi-search"
+                  @click="handlePermissionSearch"
+                />
+                <Button
+                  label="重置"
+                  icon="pi pi-refresh"
+                  severity="secondary"
+                  @click="handlePermissionReset"
+                />
+              </div>
+            </div>
+
+            <!-- 权限表格 -->
+            <div class="table-container">
+              <DataTable
+                :value="permissions"
+                :loading="permissionLoading"
+                paginator
+                :rows="permissionPageSize"
+                :total-records="permissionTotalRecords"
+                :lazy="true"
+                @page="onPermissionPageChange"
+                show-gridlines
+                striped-rows
+                responsive-layout="scroll"
+              >
+                <Column field="name" header="权限名称" sortable>
+                  <template #body="{ data }">
+                    <span class="permission-name">{{ data.name }}</span>
+                  </template>
+                </Column>
+                <Column field="code" header="权限代码" sortable>
+                  <template #body="{ data }">
+                    <span class="permission-code">{{ data.code }}</span>
+                  </template>
+                </Column>
+                <Column field="module" header="所属模块" sortable>
+                  <template #body="{ data }">
+                    <span class="permission-module">{{ data.module }}</span>
+                  </template>
+                </Column>
+                <Column field="description" header="权限描述">
+                  <template #body="{ data }">
+                    <span class="permission-description">{{ data.description || '-' }}</span>
+                  </template>
+                </Column>
+                <Column field="is_active" header="状态">
+                  <template #body="{ data }">
+                    <Tag
+                      :value="data.is_active ? '启用' : '禁用'"
+                      :severity="data.is_active ? 'success' : 'danger'"
+                    />
+                  </template>
+                </Column>
+                <Column header="操作" :style="{ width: '150px' }">
+                  <template #body="{ data }">
+                    <div class="action-buttons">
+                      <Button
+                        icon="pi pi-pencil"
+                        size="small"
+                        text
+                        @click="editPermission(data)"
+                        v-tooltip="'编辑'"
+                      />
+                      <Button
+                        icon="pi pi-trash"
+                        size="small"
+                        text
+                        severity="danger"
+                        @click="deletePermission(data)"
+                        v-tooltip="'删除'"
+                      />
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
             </div>
           </div>
         </TabPanel>
@@ -501,6 +776,165 @@
         </div>
       </form>
     </Dialog>
+
+    <!-- 角色管理的对话框们 -->
+    <!-- 创建/编辑角色对话框 -->
+    <Dialog
+      v-model:visible="showCreateRoleDialog"
+      :header="editingRole ? '编辑角色' : '新建角色'"
+      modal
+      :style="{ width: '700px' }"
+    >
+      <form @submit.prevent="handleSaveRole" class="role-form">
+        <div class="form-group">
+          <label for="roleName">角色名称 *</label>
+          <InputText
+            id="roleName"
+            v-model="roleForm.name"
+            placeholder="请输入角色名称"
+            :class="{ 'p-invalid': roleFormErrors.name }"
+            required
+          />
+          <small v-if="roleFormErrors.name" class="p-error">{{ roleFormErrors.name }}</small>
+        </div>
+
+        <div class="form-group">
+          <label for="roleDescription">角色描述</label>
+          <Textarea
+            id="roleDescription"
+            v-model="roleForm.description"
+            placeholder="请输入角色描述（可选）"
+            rows="3"
+            auto-resize
+          />
+        </div>
+
+        <div class="form-group">
+          <label>角色权限 *</label>
+          <div class="permission-selection">
+            <DataTable
+              :value="allPermissions"
+              :loading="loadingPermissions"
+              v-model:selection="selectedRolePermissions"
+              data-key="id"
+              selection-mode="multiple"
+              show-gridlines
+              striped-rows
+              responsive-layout="scroll"
+              :style="{ maxHeight: '300px' }"
+              scrollable
+            >
+              <Column selection-mode="multiple" header-style="width: 3rem"></Column>
+              <Column field="name" header="权限名称">
+                <template #body="{ data }">
+                  <span class="permission-name">{{ data.name }}</span>
+                </template>
+              </Column>
+              <Column field="code" header="权限代码">
+                <template #body="{ data }">
+                  <span class="permission-code">{{ data.code }}</span>
+                </template>
+              </Column>
+              <Column field="module" header="所属模块">
+                <template #body="{ data }">
+                  <span class="permission-module">{{ data.module }}</span>
+                </template>
+              </Column>
+            </DataTable>
+            <small class="form-help">请选择该角色拥有的权限</small>
+          </div>
+        </div>
+
+        <div class="dialog-actions">
+          <Button
+            label="取消"
+            severity="secondary"
+            @click="showCreateRoleDialog = false"
+          />
+          <Button
+            type="submit"
+            :label="editingRole ? '更新' : '创建'"
+            :loading="roleSaving"
+          />
+        </div>
+      </form>
+    </Dialog>
+
+    <!-- 权限管理的对话框们 -->
+    <!-- 创建/编辑权限对话框 -->
+    <Dialog
+      v-model:visible="showCreatePermissionDialog"
+      :header="editingPermission ? '编辑权限' : '新建权限'"
+      modal
+      :style="{ width: '600px' }"
+    >
+      <form @submit.prevent="handleSavePermission" class="permission-form">
+        <div class="form-group">
+          <label for="permissionName">权限名称 *</label>
+          <InputText
+            id="permissionName"
+            v-model="permissionForm.name"
+            placeholder="请输入权限名称"
+            :class="{ 'p-invalid': permissionFormErrors.name }"
+            required
+          />
+          <small v-if="permissionFormErrors.name" class="p-error">{{ permissionFormErrors.name }}</small>
+        </div>
+
+        <div class="form-group">
+          <label for="permissionCode">权限代码 *</label>
+          <InputText
+            id="permissionCode"
+            v-model="permissionForm.code"
+            placeholder="请输入权限代码（如：user_management）"
+            :class="{ 'p-invalid': permissionFormErrors.code }"
+            required
+          />
+          <small v-if="permissionFormErrors.code" class="p-error">{{ permissionFormErrors.code }}</small>
+          <small class="form-help">权限代码用于系统内部识别，建议使用英文和下划线</small>
+        </div>
+
+        <div class="form-group">
+          <label for="permissionModule">所属模块 *</label>
+          <Dropdown
+            id="permissionModule"
+            v-model="permissionForm.module"
+            :options="moduleOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="选择所属模块"
+            :class="{ 'p-invalid': permissionFormErrors.module }"
+            editable
+          />
+          <small v-if="permissionFormErrors.module" class="p-error">{{ permissionFormErrors.module }}</small>
+          <small class="form-help">可以从列表中选择或输入新的模块名</small>
+        </div>
+
+        <div class="form-group">
+          <label for="permissionDescription">权限描述</label>
+          <Textarea
+            id="permissionDescription"
+            v-model="permissionForm.description"
+            placeholder="请输入权限描述（可选）"
+            rows="3"
+            auto-resize
+          />
+        </div>
+
+        <div class="dialog-actions">
+          <Button
+            label="取消"
+            severity="secondary"
+            @click="showCreatePermissionDialog = false"
+          />
+          <Button
+            type="submit"
+            :label="editingPermission ? '更新' : '创建'"
+            :loading="permissionSaving"
+          />
+        </div>
+      </form>
+    </Dialog>
   </div>
 </template>
 
@@ -523,14 +957,17 @@ import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import Textarea from 'primevue/textarea'
-import MultiSelect from 'primevue/multiselect'
 import ProjectList from '@/components/ProjectList.vue'
 import { userApi } from '@/services/userApi'
 import { ProjectApiService } from '@/services/projectApi'
+import { roleApi } from '@/services/roleApi'
+import { permissionApi } from '@/services/permissionApi'
 import { useProjectManagement } from '@/composables/useProjectManagement'
 import type { User, UserCreate, UserUpdate, UserApproval } from '@/types/user'
 import { UserStatus, UserRole } from '@/types/user'
 import type { Project } from '@/types/data'
+import type { Role, RoleCreate, RoleUpdate } from '@/types/role'
+import type { Permission, PermissionCreate, PermissionUpdate } from '@/types/permission'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -572,6 +1009,78 @@ const projectForm = reactive({
 const projectFormErrors = reactive({
   name: ''
 })
+
+// 角色管理相关数据状态
+const roles = ref<Role[]>([])
+const roleLoading = ref(false)
+const roleSaving = ref(false)
+const roleTotalRecords = ref(0)
+const rolePageSize = ref(10)
+const roleCurrentPage = ref(1)
+
+// 角色管理状态
+const showCreateRoleDialog = ref(false)
+const editingRole = ref<Role | null>(null)
+
+// 角色表单数据
+const roleForm = reactive({
+  name: '',
+  description: '',
+  is_active: true
+})
+
+const roleFormErrors = reactive({
+  name: ''
+})
+
+// 角色搜索条件
+const roleSearchQuery = reactive({
+  keyword: '',
+  is_active: undefined as boolean | undefined,
+  is_system: undefined as boolean | undefined
+})
+
+// 权限管理相关数据状态
+const permissions = ref<Permission[]>([])
+const allPermissions = ref<Permission[]>([])
+const permissionLoading = ref(false)
+const permissionSaving = ref(false)
+const permissionTotalRecords = ref(0)
+const permissionPageSize = ref(10)
+const permissionCurrentPage = ref(1)
+const loadingPermissions = ref(false)
+
+// 权限管理状态
+const showCreatePermissionDialog = ref(false)
+const editingPermission = ref<Permission | null>(null)
+
+// 权限表单数据
+const permissionForm = reactive({
+  name: '',
+  code: '',
+  module: '',
+  description: '',
+  is_active: true
+})
+
+const permissionFormErrors = reactive({
+  name: '',
+  code: '',
+  module: ''
+})
+
+// 权限搜索条件
+const permissionSearchQuery = reactive({
+  keyword: '',
+  module: '',
+  is_active: undefined as boolean | undefined
+})
+
+// 角色权限选择
+const selectedRolePermissions = ref<Permission[]>([])
+
+// 权限模块列表
+const permissionModules = ref<string[]>([])
 
 // 搜索条件
 const searchQuery = reactive({
@@ -639,6 +1148,24 @@ const roleOptions = [
   { label: '用户', value: UserRole.USER },
   { label: '管理员', value: UserRole.ADMIN },
   { label: '经理', value: UserRole.MANAGER }
+]
+
+const activeOptions = [
+  { label: '启用', value: true },
+  { label: '禁用', value: false }
+]
+
+const systemOptions = [
+  { label: '系统角色', value: true },
+  { label: '自定义角色', value: false }
+]
+
+const moduleOptions = [
+  { label: '化合物管理', value: '化合物管理' },
+  { label: '合成管理', value: '合成管理' },
+  { label: '活性管理', value: '活性管理' },
+  { label: '检测管理', value: '检测管理' },
+  { label: '系统管理', value: '系统管理' }
 ]
 
 // 工具函数
@@ -746,6 +1273,119 @@ const handleReset = () => {
 const onPageChange = (event: any) => {
   currentPage.value = event.page + 1
   loadUsers()
+}
+
+const onRolePageChange = (event: any) => {
+  roleCurrentPage.value = event.page + 1
+  loadRoles()
+}
+
+const onPermissionPageChange = (event: any) => {
+  permissionCurrentPage.value = event.page + 1
+  loadPermissions()
+}
+
+// 角色管理数据操作
+const loadRoles = async () => {
+  roleLoading.value = true
+  try {
+    const params = {
+      page: roleCurrentPage.value,
+      size: rolePageSize.value,
+      ...roleSearchQuery
+    }
+    const response = await roleApi.getRoles(params)
+    roles.value = response.items
+    roleTotalRecords.value = response.total
+  } catch (error) {
+    console.error('加载角色列表失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '加载失败',
+      detail: '加载角色列表失败',
+      life: 3000
+    })
+  } finally {
+    roleLoading.value = false
+  }
+}
+
+const handleRoleSearch = () => {
+  roleCurrentPage.value = 1
+  loadRoles()
+}
+
+const handleRoleReset = () => {
+  roleSearchQuery.keyword = ''
+  roleSearchQuery.is_active = undefined
+  roleSearchQuery.is_system = undefined
+  roleCurrentPage.value = 1
+  loadRoles()
+}
+
+// 权限管理数据操作
+const loadPermissions = async () => {
+  permissionLoading.value = true
+  try {
+    const params = {
+      page: permissionCurrentPage.value,
+      size: permissionPageSize.value,
+      ...permissionSearchQuery
+    }
+    const response = await permissionApi.getPermissions(params)
+    permissions.value = response.items
+    permissionTotalRecords.value = response.total
+  } catch (error) {
+    console.error('加载权限列表失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '加载失败',
+      detail: '加载权限列表失败',
+      life: 3000
+    })
+  } finally {
+    permissionLoading.value = false
+  }
+}
+
+const loadAllPermissions = async () => {
+  try {
+    loadingPermissions.value = true
+    const response = await permissionApi.getActivePermissions()
+    allPermissions.value = response
+  } catch (error) {
+    console.error('加载权限列表失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '错误',
+      detail: '加载权限列表失败',
+      life: 3000
+    })
+  } finally {
+    loadingPermissions.value = false
+  }
+}
+
+const loadPermissionModules = async () => {
+  try {
+    const modules = await permissionApi.getPermissionModules()
+    permissionModules.value = modules
+  } catch (error) {
+    console.error('加载权限模块失败:', error)
+  }
+}
+
+const handlePermissionSearch = () => {
+  permissionCurrentPage.value = 1
+  loadPermissions()
+}
+
+const handlePermissionReset = () => {
+  permissionSearchQuery.keyword = ''
+  permissionSearchQuery.module = ''
+  permissionSearchQuery.is_active = undefined
+  permissionCurrentPage.value = 1
+  loadPermissions()
 }
 
 // 用户操作
@@ -1122,10 +1762,276 @@ const handleSaveProject = async () => {
   }
 }
 
+// 角色管理相关方法
+const resetRoleForm = () => {
+  roleForm.name = ''
+  roleForm.description = ''
+  roleForm.is_active = true
+  selectedRolePermissions.value = []
+  Object.keys(roleFormErrors).forEach(key => {
+    roleFormErrors[key as keyof typeof roleFormErrors] = ''
+  })
+}
+
+const validateRoleForm = () => {
+  Object.keys(roleFormErrors).forEach(key => {
+    roleFormErrors[key as keyof typeof roleFormErrors] = ''
+  })
+
+  let isValid = true
+
+  if (!roleForm.name.trim()) {
+    roleFormErrors.name = '请输入角色名称'
+    isValid = false
+  }
+
+  return isValid
+}
+
+const editRole = async (role: Role) => {
+  editingRole.value = role
+  roleForm.name = role.name
+  roleForm.description = role.description || ''
+  roleForm.is_active = role.is_active
+
+  // 加载权限数据
+  await loadAllPermissions()
+  
+  // 加载该角色的权限
+  try {
+    const rolePermissions = await roleApi.getRolePermissions(role.id)
+    selectedRolePermissions.value = rolePermissions
+  } catch (error) {
+    console.error('加载角色权限失败:', error)
+    selectedRolePermissions.value = []
+  }
+  
+  showCreateRoleDialog.value = true
+}
+
+const deleteRole = (role: Role) => {
+  if (role.is_system) {
+    toast.add({
+      severity: 'warn',
+      summary: '操作限制',
+      detail: '系统角色不能被删除',
+      life: 3000
+    })
+    return
+  }
+
+  confirm.require({
+    message: `确定要删除角色 "${role.name}" 吗？删除后不可恢复。`,
+    header: '删除确认',
+    icon: 'pi pi-exclamation-triangle',
+    accept: async () => {
+      try {
+        await roleApi.deleteRole(role.id)
+        toast.add({
+          severity: 'success',
+          summary: '删除成功',
+          detail: '角色删除成功',
+          life: 3000
+        })
+        loadRoles()
+      } catch (error: any) {
+        console.error('删除角色失败:', error)
+        toast.add({
+          severity: 'error',
+          summary: '删除失败',
+          detail: error.message || '删除角色时发生错误',
+          life: 3000
+        })
+      }
+    }
+  })
+}
+
+const handleSaveRole = async () => {
+  if (!validateRoleForm()) {
+    return
+  }
+
+  roleSaving.value = true
+  try {
+    const roleData = {
+      name: roleForm.name,
+      description: roleForm.description,
+      is_active: roleForm.is_active,
+      permission_ids: selectedRolePermissions.value.map(p => p.id)
+    }
+
+    if (editingRole.value) {
+      await roleApi.updateRole(editingRole.value.id, roleData)
+      toast.add({
+        severity: 'success',
+        summary: '更新成功',
+        detail: '角色信息更新成功',
+        life: 3000
+      })
+    } else {
+      await roleApi.createRole(roleData)
+      toast.add({
+        severity: 'success',
+        summary: '创建成功',
+        detail: '角色创建成功',
+        life: 3000
+      })
+    }
+    
+    showCreateRoleDialog.value = false
+    editingRole.value = null
+    resetRoleForm()
+    loadRoles()
+  } catch (error: any) {
+    console.error('保存角色失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '保存失败',
+      detail: error.message || '保存角色时发生错误',
+      life: 3000
+    })
+  } finally {
+    roleSaving.value = false
+  }
+}
+
+// 权限管理相关方法
+const resetPermissionForm = () => {
+  permissionForm.name = ''
+  permissionForm.code = ''
+  permissionForm.module = ''
+  permissionForm.description = ''
+  permissionForm.is_active = true
+  Object.keys(permissionFormErrors).forEach(key => {
+    permissionFormErrors[key as keyof typeof permissionFormErrors] = ''
+  })
+}
+
+const validatePermissionForm = () => {
+  Object.keys(permissionFormErrors).forEach(key => {
+    permissionFormErrors[key as keyof typeof permissionFormErrors] = ''
+  })
+
+  let isValid = true
+
+  if (!permissionForm.name.trim()) {
+    permissionFormErrors.name = '请输入权限名称'
+    isValid = false
+  }
+
+  if (!permissionForm.code.trim()) {
+    permissionFormErrors.code = '请输入权限代码'
+    isValid = false
+  } else if (!/^[a-z_]+$/.test(permissionForm.code)) {
+    permissionFormErrors.code = '权限代码只能包含小写字母和下划线'
+    isValid = false
+  }
+
+  if (!permissionForm.module.trim()) {
+    permissionFormErrors.module = '请选择所属模块'
+    isValid = false
+  }
+
+  return isValid
+}
+
+const editPermission = (permission: Permission) => {
+  editingPermission.value = permission
+  permissionForm.name = permission.name
+  permissionForm.code = permission.code
+  permissionForm.module = permission.module
+  permissionForm.description = permission.description || ''
+  permissionForm.is_active = permission.is_active
+  showCreatePermissionDialog.value = true
+}
+
+const deletePermission = (permission: Permission) => {
+  confirm.require({
+    message: `确定要删除权限 "${permission.name}" 吗？删除后不可恢复，可能会影响系统功能。`,
+    header: '删除确认',
+    icon: 'pi pi-exclamation-triangle',
+    accept: async () => {
+      try {
+        await permissionApi.deletePermission(permission.id)
+        toast.add({
+          severity: 'success',
+          summary: '删除成功',
+          detail: '权限删除成功',
+          life: 3000
+        })
+        loadPermissions()
+      } catch (error: any) {
+        console.error('删除权限失败:', error)
+        toast.add({
+          severity: 'error',
+          summary: '删除失败',
+          detail: error.message || '删除权限时发生错误',
+          life: 3000
+        })
+      }
+    }
+  })
+}
+
+const handleSavePermission = async () => {
+  if (!validatePermissionForm()) {
+    return
+  }
+
+  permissionSaving.value = true
+  try {
+    const permissionData = {
+      name: permissionForm.name,
+      code: permissionForm.code,
+      module: permissionForm.module,
+      description: permissionForm.description,
+      is_active: permissionForm.is_active
+    }
+
+    if (editingPermission.value) {
+      await permissionApi.updatePermission(editingPermission.value.id, permissionData)
+      toast.add({
+        severity: 'success',
+        summary: '更新成功',
+        detail: '权限信息更新成功',
+        life: 3000
+      })
+    } else {
+      await permissionApi.createPermission(permissionData)
+      toast.add({
+        severity: 'success',
+        summary: '创建成功',
+        detail: '权限创建成功',
+        life: 3000
+      })
+    }
+    
+    showCreatePermissionDialog.value = false
+    editingPermission.value = null
+    resetPermissionForm()
+    loadPermissions()
+    loadPermissionModules() // 重新加载模块列表
+  } catch (error: any) {
+    console.error('保存权限失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '保存失败',
+      detail: error.message || '保存权限时发生错误',
+      life: 3000
+    })
+  } finally {
+    permissionSaving.value = false
+  }
+}
+
 // 组件挂载时加载数据
 onMounted(() => {
   loadUsers()
   refreshProjects()
+  loadRoles()
+  loadPermissions()
+  loadPermissionModules()
 })
 </script>
 

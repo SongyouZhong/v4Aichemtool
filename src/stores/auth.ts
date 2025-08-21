@@ -1,10 +1,13 @@
 import { defineStore } from 'pinia'
 import { userApi } from '@/services/userApi'
+import { roleApi } from '@/services/roleApi'
 import type { AuthUser, AuthState } from '@/types'
+import type { Role } from '@/types/role'
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     user: null,
+    userRole: null,
     isAuthenticated: false,
     isLoading: false
   }),
@@ -38,9 +41,23 @@ export const useAuthStore = defineStore('auth', {
           this.user = userData
           this.isAuthenticated = true
           
+          // 加载用户角色和权限信息
+          if (user.role_id) {
+            try {
+              const roleInfo = await roleApi.getRole(user.role_id)
+              this.userRole = roleInfo
+            } catch (error) {
+              console.error('Failed to load user role:', error)
+              this.userRole = null
+            }
+          }
+          
           // 保存到localStorage
           localStorage.setItem('user', JSON.stringify(userData))
           localStorage.setItem('isAuthenticated', 'true')
+          if (this.userRole) {
+            localStorage.setItem('userRole', JSON.stringify(this.userRole))
+          }
           
           return true
         }
@@ -56,10 +73,12 @@ export const useAuthStore = defineStore('auth', {
 
     logout() {
       this.user = null
+      this.userRole = null
       this.isAuthenticated = false
       
       // 清除localStorage
       localStorage.removeItem('user')
+      localStorage.removeItem('userRole')
       localStorage.removeItem('isAuthenticated')
     },
 
@@ -68,10 +87,12 @@ export const useAuthStore = defineStore('auth', {
       
       try {
         const userData = localStorage.getItem('user')
+        const userRoleData = localStorage.getItem('userRole')
         const isAuthenticated = localStorage.getItem('isAuthenticated')
         
         if (userData && isAuthenticated === 'true') {
           this.user = JSON.parse(userData)
+          this.userRole = userRoleData ? JSON.parse(userRoleData) : null
           this.isAuthenticated = true
         } else {
           // 自动登录访客用户，无需输入凭据

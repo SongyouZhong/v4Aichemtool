@@ -36,52 +36,68 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import Button from 'primevue/button';
 import PlatformCard from '@/components/platform/PlatformCard.vue';
 import type { SmallMoleculeTool } from '@/types';
+import { usePermissions } from '@/composables/usePermissions';
 
 const router = useRouter();
+const { hasPermission, PERMISSIONS } = usePermissions();
 
-const smallMoleculeTools = ref<SmallMoleculeTool[]>([
-
+const allSmallMoleculeTools = ref<SmallMoleculeTool[]>([
   {
     title: '化合物录入模块',
     category: '化合物管理、输入与分析',
     description: '用于录入化合物信息的模块，支持化合物的基本信息录入、编辑和查询。包括化学结构、分子式、分子量等信息的管理功能。',
     buttonText: '访问',
-    type: 'data-input'
+    type: 'data-input',
+    permission: PERMISSIONS.COMPOUND_INPUT
   },
   {
     title: '合成录入模块',
     category: '合成结果数据录入',
     description: '用于录入合成结果信息的模块，支持合成结果的基本信息录入、编辑和查询等信息的管理功能。',
     buttonText: '访问',
-    type: 'synthetic-input'
+    type: 'synthetic-input',
+    permission: PERMISSIONS.SYNTHETIC_INPUT
   },
   {
     title: '活性录入模块',
     category: '活性数据录入与管理',
     description: '活性数据录入和管理系统，支持化合物活性数据的录入、编辑和查询。包括Ki、IC50、EC50等活性类型的数据管理功能。',
     buttonText: '录入活性',
-    type: 'activity-input'
+    type: 'activity-input',
+    permission: PERMISSIONS.ACTIVITY_INPUT
   },
   {
     title: '检测方法管理模块',
     category: '检测方法管理/配置',
     description: '检测方法管理系统，支持检测方法的创建、编辑、删除和查询功能。为活性数据录入提供检测方法配置支持。',
     buttonText: '管理检测方法',
-    type: 'assay-management'
+    type: 'assay-management',
+    permission: PERMISSIONS.ASSAY_MANAGEMENT
   },
   {
     title: '管理模块',
     category: '用户和项目管理',
     description: '用户与项目管理系统，支持用户的创建、编辑、删除和查询功能。包括用户注册审批、角色分配和权限管理功能。',
     buttonText: '管理用户',
-    type: 'user-management'
+    type: 'user-management',
+    permission: PERMISSIONS.USER_MANAGEMENT
   }
 ]);
+
+// 根据用户权限过滤可显示的工具
+const smallMoleculeTools = computed(() => {
+  return allSmallMoleculeTools.value.filter(tool => {
+    // 如果工具没有定义权限要求，则默认显示
+    if (!tool.permission) return true;
+    // 检查用户是否有相应权限
+    return hasPermission(tool.permission);
+  });
+});
 
 const handleToolClick = (tool: SmallMoleculeTool) => {
   // 根据工具类型导航到相应页面

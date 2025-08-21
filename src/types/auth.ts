@@ -15,6 +15,7 @@ export interface LoginForm {
 
 export interface AuthState {
   user: AuthUser | null;
+  userRole: any | null; // 用户角色信息，包含权限
   isAuthenticated: boolean;
   isLoading: boolean;
 }

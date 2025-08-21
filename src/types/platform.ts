@@ -4,6 +4,7 @@ export interface PlatformCard {
   category: string;
   buttonText?: string;
   onClick?: () => void;
+  permission?: string; // 访问权限代码
 }
 
 export interface SmallMoleculeTool extends PlatformCard {

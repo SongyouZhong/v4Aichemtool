@@ -75,7 +75,7 @@ const smallMoleculeTools = ref<SmallMoleculeTool[]>([
     type: 'assay-management'
   },
   {
-    title: '用户管理模块',
+    title: '管理模块',
     category: '用户和项目管理',
     description: '用户与项目管理系统，支持用户的创建、编辑、删除和查询功能。包括用户注册审批、角色分配和权限管理功能。',
     buttonText: '管理用户',

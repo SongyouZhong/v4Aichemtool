@@ -4,6 +4,7 @@ import { ApiClient } from './apiClient'
 import type { PaginatedResponse } from './apiClient'
 import type { User, UserRegister, UserCreate, UserUpdate, UserListQuery, UserApproval, UserProjectsUpdate } from '@/types/user'
 import type { Project } from '@/types/data'
+import type { AuthResponse } from '@/types/auth'
 
 class UserApiService {
   private apiClient: ApiClient
@@ -129,8 +130,8 @@ class UserApiService {
   /**
    * 用户身份验证
    */
-  async authenticateUser(phone: string, password: string): Promise<any> {
-    const response = await this.apiClient.post('/users/authenticate', { phone, password })
+  async authenticateUser(phone: string, password: string): Promise<AuthResponse> {
+    const response = await this.apiClient.post<AuthResponse>('/users/authenticate', { phone, password })
     return response.data
   }
 

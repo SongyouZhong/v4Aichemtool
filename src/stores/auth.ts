@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { userApi } from '@/services/userApi'
 import { roleApi } from '@/services/roleApi'
-import type { AuthUser, AuthState } from '@/types'
+import type { AuthUser, AuthState, AuthResponse } from '@/types'
 import type { Role } from '@/types/role'
 
 export const useAuthStore = defineStore('auth', {
@@ -26,6 +26,9 @@ export const useAuthStore = defineStore('auth', {
         const authResult = await userApi.authenticateUser(phone, password)
         
         if (authResult && authResult.user_id) {
+          // 保存access token
+          localStorage.setItem('access_token', authResult.access_token)
+          
           // 获取完整的用户信息
           const user = await userApi.getUserById(authResult.user_id)
           
@@ -34,7 +37,7 @@ export const useAuthStore = defineStore('auth', {
             name: user.name,
             phone: user.phone,
             department: user.department,
-            role: user.role,
+            role: authResult.role || '',
             status: user.status
           }
           
@@ -42,9 +45,9 @@ export const useAuthStore = defineStore('auth', {
           this.isAuthenticated = true
           
           // 加载用户角色和权限信息
-          if (user.role_id) {
+          if (authResult.role_id) {
             try {
-              const roleInfo = await roleApi.getRole(user.role_id)
+              const roleInfo = await roleApi.getRole(authResult.role_id)
               this.userRole = roleInfo
             } catch (error) {
               console.error('Failed to load user role:', error)
@@ -80,6 +83,7 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('user')
       localStorage.removeItem('userRole')
       localStorage.removeItem('isAuthenticated')
+      localStorage.removeItem('access_token')
     },
 
     async checkAuth() {
@@ -89,8 +93,9 @@ export const useAuthStore = defineStore('auth', {
         const userData = localStorage.getItem('user')
         const userRoleData = localStorage.getItem('userRole')
         const isAuthenticated = localStorage.getItem('isAuthenticated')
+        const accessToken = localStorage.getItem('access_token')
         
-        if (userData && isAuthenticated === 'true') {
+        if (userData && isAuthenticated === 'true' && accessToken) {
           this.user = JSON.parse(userData)
           this.userRole = userRoleData ? JSON.parse(userRoleData) : null
           this.isAuthenticated = true

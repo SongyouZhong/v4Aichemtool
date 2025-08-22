@@ -70,6 +70,17 @@ export class ApiClient {
     }
   }
 
+  // 私有方法：获取认证headers
+  private getAuthHeaders(): Record<string, string> {
+    const token = localStorage.getItem('access_token')
+    if (token) {
+      return {
+        'Authorization': `Bearer ${token}`
+      }
+    }
+    return {}
+  }
+
   // 私有方法：创建请求配置
   private createRequestConfig(
     method: string,
@@ -80,6 +91,7 @@ export class ApiClient {
       method,
       headers: {
         ...this.defaultHeaders,
+        ...this.getAuthHeaders(),
         ...customHeaders
       }
     }

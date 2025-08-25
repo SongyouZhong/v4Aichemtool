@@ -7,6 +7,7 @@ import { CompoundApiService } from '@/services/compoundApi'
 import { SmilesApiService } from '@/services/smilesApi'
 import { DescriptorApiService } from '@/services/descriptorApi'
 import { ProjectApiService } from '@/services/projectApi'
+import { FileApiService } from '@/services/fileApi'
 import { useCompoundAggregation, type AggregatedCompound } from '@/composables/useCompoundAggregation'
 
 export function useTableData() {
@@ -48,6 +49,44 @@ export function useTableData() {
   // 计算属性
   const scrollable = computed(() => pageSize.value > 15)
   const scrollHeight = computed(() => pageSize.value > 15 ? '400px' : undefined)
+
+  // 批量获取化合物附件信息
+  const aggregateAttachments = async (compounds: AggregatedCompound[]): Promise<AggregatedCompound[]> => {
+    try {
+      // 为每个化合物获取附件信息
+      const compoundsWithAttachments = await Promise.all(
+        compounds.map(async (compound) => {
+          try {
+            const attachmentResponse = await FileApiService.getAttachmentsByModule(
+              'compound',
+              compound.id
+            )
+            return {
+              ...compound,
+              attachments: attachmentResponse.items || []
+            }
+          } catch (error) {
+            console.warn(`Failed to load attachments for compound ${compound.id}:`, error)
+            return {
+              ...compound,
+              attachments: []
+            }
+          }
+        })
+      )
+
+      console.log(`Successfully aggregated attachments for ${compounds.length} compounds`)
+      return compoundsWithAttachments
+
+    } catch (error) {
+      console.error('Failed to aggregate attachments:', error)
+      // 如果附件聚合失败，返回原始数据（附件为空数组）
+      return compounds.map(compound => ({
+        ...compound,
+        attachments: []
+      }))
+    }
+  }
 
   // 批量获取分子描述符
   const aggregateDescriptors = async (compounds: AggregatedCompound[]): Promise<AggregatedCompound[]> => {
@@ -114,8 +153,8 @@ export function useTableData() {
     }
   }
 
-  // 将AggregatedCompound转换为TableRow（增强版，包含描述符）
-  const aggregatedCompoundToTableRow = (compound: AggregatedCompound & { descriptors?: MolecularDescriptors }, projectNameMap?: Map<string, string>): TableRow => {
+  // 将AggregatedCompound转换为TableRow（增强版，包含描述符和附件）
+  const aggregatedCompoundToTableRow = (compound: AggregatedCompound & { descriptors?: MolecularDescriptors; attachments?: any[] }, projectNameMap?: Map<string, string>): TableRow => {
     return {
       id: compound.id,
       name: compound.name || '',
@@ -131,7 +170,7 @@ export function useTableData() {
       creator_id: compound.creator_id,
       project_id: compound.project_id, // 添加项目ID
       project_name: projectNameMap && compound.project_id ? projectNameMap.get(compound.project_id) : undefined, // 添加项目名称
-      attachments: [], // 暂时为空数组
+      attachments: compound.attachments || [], // 使用聚合后的附件信息
       quantity_summary: compound.quantity_summary, // 使用聚合后的数量汇总
       synthesis_count: compound.synthesis_count, // 使用聚合后的合成记录数
       has_activity: compound.has_activity, // 使用聚合后的活性信息
@@ -185,10 +224,13 @@ export function useTableData() {
       // 3. 聚合合成和活性信息
       const aggregatedCompounds = await aggregateCompoundsInfo(response.items)
       
-      // 4. 聚合分子描述符信息
-      const compoundsWithDescriptors = await aggregateDescriptors(aggregatedCompounds)
+      // 4. 聚合附件信息
+      const compoundsWithAttachments = await aggregateAttachments(aggregatedCompounds)
       
-      // 5. 转换为TableRow格式
+      // 5. 聚合分子描述符信息
+      const compoundsWithDescriptors = await aggregateDescriptors(compoundsWithAttachments)
+      
+      // 6. 转换为TableRow格式
       tableData.value = compoundsWithDescriptors.map(compound => 
         aggregatedCompoundToTableRow(compound, projectNameMap)
       )
@@ -196,7 +238,7 @@ export function useTableData() {
       currentPage.value = response.page
       pageSize.value = response.size
       
-      console.log('Table data loaded with full aggregation (synthesis, activity, descriptors):', tableData.value.length, 'items', projectId ? `for project: ${projectId}` : '(all projects)')
+      console.log('Table data loaded with full aggregation (synthesis, activity, attachments, descriptors):', tableData.value.length, 'items', projectId ? `for project: ${projectId}` : '(all projects)')
     } catch (error) {
       console.error('Failed to load table data:', error)
       // 如果聚合失败，尝试只加载基础数据

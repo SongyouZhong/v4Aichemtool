@@ -357,10 +357,11 @@
                 
                 <!-- Attachments 列 -->
                 <div v-else-if="col.field === 'attachments'" class="attachments-cell">
-                  <span v-if="slotProps.data.attachments && slotProps.data.attachments.length > 0">
-                    {{ slotProps.data.attachments.length }} file(s)
+                  <span v-if="slotProps.data.attachments && slotProps.data.attachments.length > 0" class="has-attachments">
+                    <i class="pi pi-paperclip"></i>
+                    {{ slotProps.data.attachments.length }} 个附件
                   </span>
-                  <span v-else>-</span>
+                  <span v-else class="no-attachments">无附件</span>
                 </div>
                 
                 <!-- 分子描述符列 -->
@@ -456,6 +457,25 @@
                     @click="editCompound(slotProps.data)"
                     v-tooltip.top="'Edit'"
                     class="action-btn edit-btn"
+                  />
+                  <Button
+                    icon="pi pi-paperclip"
+                    size="small"
+                    outlined
+                    severity="warning"
+                    @click="showCompoundUploadDialog(slotProps.data)"
+                    v-tooltip.top="'上传附件'"
+                    class="action-btn attach-btn"
+                  />
+                  <Button
+                    icon="pi pi-download"
+                    size="small"
+                    outlined
+                    severity="success"
+                    @click="downloadCompoundAttachment(slotProps.data)"
+                    v-tooltip.top="'下载附件'"
+                    v-if="slotProps.data.attachments && slotProps.data.attachments.length > 0"
+                    class="action-btn download-btn"
                   />
                   <Button 
                     icon="pi pi-trash" 
@@ -929,6 +949,68 @@
         </div>
       </div>
     </Dialog>
+
+    <!-- 化合物附件上传对话框 -->
+    <Dialog
+      v-model:visible="showCompoundAttachmentDialog"
+      modal
+      class="compound-attachment-dialog"
+      style="width: 700px"
+      :closable="true"
+    >
+      <template #header>
+        <h3>化合物附件管理</h3>
+      </template>
+
+      <div class="compound-attachment-content">
+        <div class="compound-info">
+          <h4>化合物信息</h4>
+          <p><strong>化合物名称：</strong>{{ uploadingCompound?.name || '未命名' }}</p>
+          <p v-if="uploadingCompound?.batch"><strong>批次：</strong>{{ uploadingCompound.batch }}</p>
+          <p v-if="uploadingCompound?.description"><strong>描述：</strong>{{ uploadingCompound.description }}</p>
+          
+          <!-- 化合物结构预览 -->
+          <div v-if="uploadingCompound?.smiles" class="compound-structure-preview">
+            <label><strong>分子结构：</strong></label>
+            <div class="structure-preview-container">
+              <img
+                :src="`http://localhost:8001/api/v1/smiles/structure-image?smiles=${encodeURIComponent(uploadingCompound.smiles)}&width=200&height=150`"
+                alt="化合物结构"
+                class="structure-preview-image"
+                @error="handleImageError"
+              />
+            </div>
+          </div>
+        </div>
+        
+        <div class="upload-section">
+          <h4>附件上传</h4>
+          <FileUpload 
+            :config="{
+              moduleType: 'compound',
+              moduleId: uploadingCompound?.id || '',
+              uploadedBy: authStore.currentUser?.id || 'current_user',
+              multiple: true,
+              maxFileSize: 50,
+              allowedTypes: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar', 'jpg', 'jpeg', 'png', 'gif']
+            }"
+            :showExistingFiles="true"
+            @uploaded="handleCompoundAttachmentUpload"
+            @error="handleCompoundAttachmentError"
+          />
+        </div>
+      </div>
+
+      <template #footer>
+        <div class="dialog-actions">
+          <Button
+            label="关闭"
+            severity="secondary"
+            @click="showCompoundAttachmentDialog = false"
+          />
+        </div>
+      </template>
+    </Dialog>
   </div>
 </template>
 
@@ -946,6 +1028,7 @@ import Drawer from 'primevue/drawer';
 
 // 导入自定义组件
 import ProjectList from '@/components/ProjectList.vue';
+import FileUpload from '@/components/FileUpload.vue';
 
 // 导入自定义组合式函数
 import { useTableData } from '@/composables/useTableData';
@@ -958,6 +1041,7 @@ import type { Project } from '@/types/data';
 import { CompoundApiService } from '@/services/compoundApi';
 import { SmilesApiService } from '@/services/smilesApi';
 import { userApi } from '@/services/userApi';
+import { FileApiService } from '@/services/fileApi';
 
 // 导入状态管理
 import { useAuthStore } from '@/stores/auth';
@@ -1077,6 +1161,10 @@ const showColumnDialog = ref(false);
 const showEditDialog = ref(false);
 const editingCompound = ref<any>({});
 const showEditConfirmDialog = ref(false);
+
+// 化合物附件上传对话框相关
+const showCompoundAttachmentDialog = ref(false);
+const uploadingCompound = ref<any>(null);
 
 // 定义可用的列配置
 interface ColumnConfig {
@@ -1881,6 +1969,63 @@ const saveData = async () => {
     alert('Data saved successfully!');
   } else {
     alert('Failed to save data. Please check the form and try again.');
+  }
+};
+
+// 化合物附件相关方法
+const showCompoundUploadDialog = (compound: any) => {
+  console.log('打开化合物附件上传对话框:', compound);
+  uploadingCompound.value = compound;
+  showCompoundAttachmentDialog.value = true;
+};
+
+const handleCompoundAttachmentUpload = async (uploadResults: any[]) => {
+  if (!uploadingCompound.value || !uploadResults.length) return;
+  
+  try {
+    console.log('化合物附件上传成功:', uploadResults);
+    
+    // 可以在这里更新化合物的附件信息，或者重新加载表格数据
+    await loadTableData(currentPage.value, pageSize.value, selectedProject.value?.id, true);
+    
+    alert(`成功上传 ${uploadResults.length} 个附件到化合物 "${uploadingCompound.value.name}"`);
+  } catch (error: any) {
+    console.error('处理化合物附件上传失败:', error);
+    alert('处理化合物附件上传时发生错误');
+  }
+};
+
+const handleCompoundAttachmentError = (error: string) => {
+  console.error('化合物附件上传失败:', error);
+  alert('化合物附件上传失败: ' + error);
+};
+
+const downloadCompoundAttachment = (compound: any) => {
+  console.log('下载化合物附件:', compound);
+  
+  if (!compound.attachments || compound.attachments.length === 0) {
+    alert('该化合物没有附件');
+    return;
+  }
+  
+  // 如果只有一个附件，直接下载
+  if (compound.attachments.length === 1) {
+    const attachment = compound.attachments[0];
+    try {
+      const downloadUrl = `http://localhost:8001/api/v1/attachments/download/${attachment.id}`;
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = attachment.file_name || 'attachment';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('下载附件失败:', error);
+      alert('下载附件失败');
+    }
+  } else {
+    // 如果有多个附件，提示用户选择或打开附件管理对话框
+    alert(`该化合物有 ${compound.attachments.length} 个附件，请点击"上传附件"按钮查看和管理所有附件。`);
   }
 };
 
@@ -3306,5 +3451,118 @@ onMounted(() => {
 .data-table ::v-deep(.p-datatable-thead th[style*="background-color: #fce4ec"]) {
   background-color: #fce4ec !important;
   border-color: #f8bbd9;
+}
+
+/* 化合物附件对话框样式 */
+.compound-attachment-dialog {
+  max-width: 700px;
+}
+
+.compound-attachment-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.compound-info {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid var(--p-primary-color);
+}
+
+.compound-info h4 {
+  margin: 0 0 0.75rem 0;
+  color: var(--p-primary-color);
+}
+
+.compound-info p {
+  margin: 0.5rem 0;
+  color: #333;
+}
+
+.compound-structure-preview {
+  margin-top: 1rem;
+}
+
+.compound-structure-preview label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--p-primary-color);
+}
+
+.structure-preview-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+}
+
+.structure-preview-image {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 4px;
+}
+
+.upload-section h4 {
+  margin: 0 0 1rem 0;
+  color: var(--p-primary-color);
+}
+
+/* 附件列样式 */
+.attachments-cell {
+  text-align: center;
+  font-size: 0.9rem;
+}
+
+.has-attachments {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.has-attachments .pi {
+  margin-right: 0.25rem;
+}
+
+.no-attachments {
+  color: #6c757d;
+  font-style: italic;
+}
+
+/* 附件按钮样式 */
+.attach-btn {
+  color: #f57c00 !important;
+  border-color: #f57c00 !important;
+}
+
+.attach-btn:hover {
+  background-color: #f57c00 !important;
+  color: white !important;
+}
+
+.download-btn {
+  color: #388e3c !important;
+  border-color: #388e3c !important;
+}
+
+.download-btn:hover {
+  background-color: #388e3c !important;
+  color: white !important;
+}
+
+/* 操作按钮间距调整 */
+.action-buttons {
+  display: flex;
+  gap: 0.25rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.action-btn {
+  min-width: 2rem;
+  height: 2rem;
 }
 </style>

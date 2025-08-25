@@ -40,7 +40,7 @@ export interface TableRow {
   creator_id?: string;
   project_id?: string; // 添加项目ID
   project_name?: string; // 添加项目名称
-  attachments?: string[]; // 保留以兼容现有代码
+  attachments?: AttachmentInfo[]; // 附件信息列表
   synthesis_status?: number; // 合成状态: -1未合成, 0合成中, 1已合成
   synthesis_status_text?: string; // 合成状态文本
   quantity_summary?: string; // 数量汇总

@@ -108,8 +108,12 @@
                 paginator
                 :rows="pageSize"
                 :total-records="totalRecords"
+                :first="userFirstIndex"
                 :lazy="true"
                 @page="onPageChange"
+                paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                current-page-report-template="显示第 {first} 到 {last} 条，共 {totalRecords} 条"
+                :rows-per-page-options="[10, 20, 50]"
                 show-gridlines
                 striped-rows
                 responsive-layout="scroll"
@@ -212,7 +216,7 @@
                   label="刷新项目"
                   icon="pi pi-refresh"
                   severity="secondary"
-                  @click="refreshProjects"
+                  @click="loadProjectsForManagement"
                   :loading="projectLoading"
                 />
                 <Button
@@ -223,18 +227,134 @@
               </div>
             </div>
 
-            <!-- 项目列表 -->
-            <div class="project-container">
-              <ProjectList 
-                :projects="projects"
+            <!-- 项目搜索筛选 -->
+            <div class="search-filters">
+              <div class="search-row">
+                <div class="search-item">
+                  <label>项目名称</label>
+                  <InputText
+                    v-model="projectSearchQuery.name"
+                    placeholder="请输入项目名称"
+                    @keyup.enter="handleProjectSearch"
+                  />
+                </div>
+              </div>
+              <div class="search-actions">
+                <Button
+                  label="搜索"
+                  icon="pi pi-search"
+                  @click="handleProjectSearch"
+                />
+                <Button
+                  label="重置"
+                  icon="pi pi-refresh"
+                  severity="secondary"
+                  @click="handleProjectReset"
+                />
+              </div>
+            </div>
+
+            <!-- 项目表格 -->
+            <div class="table-container">
+              <DataTable
+                :value="projects"
                 :loading="projectLoading"
-                :selectedProject="selectedProject"
-                @select-project="handleSelectProject"
-                @edit-project="editProject"
-                @delete-project="deleteProject"
-                @create-project="showCreateProjectDialog = true"
-                @refresh="refreshProjects"
-              />
+                paginator
+                :rows="projectPageSize"
+                :total-records="projectTotalRecords"
+                :first="projectFirstIndex"
+                :lazy="true"
+                @page="onProjectPageChange"
+                paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                current-page-report-template="显示第 {first} 到 {last} 条，共 {totalRecords} 条"
+                :rows-per-page-options="[10, 20, 50]"
+                show-gridlines
+                striped-rows
+                responsive-layout="scroll"
+              >
+                <Column field="name" header="项目名称" sortable>
+                  <template #body="{ data }">
+                    <span class="project-name">{{ data.name }}</span>
+                  </template>
+                </Column>
+                
+                <Column field="description" header="项目描述">
+                  <template #body="{ data }">
+                    <span class="project-description">{{ data.description || '-' }}</span>
+                  </template>
+                </Column>
+                
+                <Column field="attachment" header="附件">
+                  <template #body="{ data }">
+                    <div class="attachment-info">
+                      <!-- 处理新格式的attachments数组 -->
+                      <div v-if="data.attachments && data.attachments.length > 0" class="attachments-list">
+                        <div 
+                          v-for="attachment in data.attachments" 
+                          :key="attachment.id"
+                          class="attachment-item"
+                        >
+                          <i class="pi pi-paperclip"></i>
+                          <span class="attachment-name" @click="downloadAttachmentById(attachment.id, attachment.file_name)">
+                            {{ attachment.file_name }}
+                          </span>
+                          <span class="attachment-size">({{ formatFileSize(attachment.file_size) }})</span>
+                        </div>
+                      </div>
+                      <!-- 处理旧格式的单个attachment字段 -->
+                      <div v-else-if="data.attachment" class="attachments-list">
+                        <div class="attachment-item">
+                          <i class="pi pi-paperclip"></i>
+                          <span class="attachment-name" @click="downloadAttachment(data)">
+                            {{ getAttachmentName(data.attachment) }}
+                          </span>
+                        </div>
+                      </div>
+                      <span v-else class="no-attachment">无附件</span>
+                    </div>
+                  </template>
+                </Column>
+                
+                <Column header="操作" :exportable="false">
+                  <template #body="{ data }">
+                    <div class="action-buttons">
+                      <Button
+                        icon="pi pi-pencil"
+                        severity="info"
+                        text
+                        rounded
+                        @click="editProject(data)"
+                        v-tooltip.top="'编辑'"
+                      />
+                      <Button
+                        icon="pi pi-paperclip"
+                        severity="warning"
+                        text
+                        rounded
+                        @click="showUploadDialog(data)"
+                        v-tooltip.top="'上传附件'"
+                      />
+                      <Button
+                        icon="pi pi-download"
+                        severity="success"
+                        text
+                        rounded
+                        @click="downloadAttachment(data)"
+                        v-tooltip.top="'下载附件'"
+                        v-if="data.attachment"
+                      />
+                      <Button
+                        icon="pi pi-trash"
+                        severity="danger"
+                        text
+                        rounded
+                        @click="deleteProject(data)"
+                        v-tooltip.top="'删除'"
+                      />
+                    </div>
+                  </template>
+                </Column>
+              </DataTable>
             </div>
           </div>
         </TabPanel>
@@ -310,8 +430,12 @@
                 paginator
                 :rows="rolePageSize"
                 :total-records="roleTotalRecords"
+                :first="roleFirstIndex"
                 :lazy="true"
                 @page="onRolePageChange"
+                paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                current-page-report-template="显示第 {first} 到 {last} 条，共 {totalRecords} 条"
+                :rows-per-page-options="[10, 20, 50]"
                 show-gridlines
                 striped-rows
                 responsive-layout="scroll"
@@ -446,8 +570,12 @@
                 paginator
                 :rows="permissionPageSize"
                 :total-records="permissionTotalRecords"
+                :first="permissionFirstIndex"
                 :lazy="true"
                 @page="onPermissionPageChange"
+                paginator-template="FirstPageLink PrevPageLink PageLinks NextPageLink LastPageLink CurrentPageReport RowsPerPageDropdown"
+                current-page-report-template="显示第 {first} 到 {last} 条，共 {totalRecords} 条"
+                :rows-per-page-options="[10, 20, 50]"
                 show-gridlines
                 striped-rows
                 responsive-layout="scroll"
@@ -777,6 +905,46 @@
       </form>
     </Dialog>
 
+    <!-- 附件上传对话框 -->
+    <Dialog
+      v-model:visible="showAttachmentUploadDialog"
+      header="上传项目附件"
+      modal
+      :style="{ width: '600px' }"
+    >
+      <div v-if="uploadingProject" class="upload-dialog-content">
+        <div class="project-info">
+          <h4>项目信息</h4>
+          <p><strong>项目名称：</strong>{{ uploadingProject.name }}</p>
+          <p v-if="uploadingProject.description"><strong>项目描述：</strong>{{ uploadingProject.description }}</p>
+        </div>
+        
+        <div class="upload-section">
+          <h4>附件上传</h4>
+          <FileUpload 
+            :config="{
+              moduleType: 'project',
+              moduleId: uploadingProject.id,
+              uploadedBy: 'current_user', // TODO: 从认证状态获取当前用户ID
+              multiple: false,
+              maxFileSize: 50,
+              allowedTypes: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'zip', 'rar']
+            }"
+            @uploaded="handleAttachmentUpload"
+            @error="handleAttachmentError"
+          />
+        </div>
+        
+        <div class="dialog-actions">
+          <Button
+            label="关闭"
+            severity="secondary"
+            @click="showAttachmentUploadDialog = false"
+          />
+        </div>
+      </div>
+    </Dialog>
+
     <!-- 角色管理的对话框们 -->
     <!-- 创建/编辑角色对话框 -->
     <Dialog
@@ -939,7 +1107,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useToast } from 'primevue/usetoast'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
@@ -957,15 +1125,16 @@ import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import Textarea from 'primevue/textarea'
-import ProjectList from '@/components/ProjectList.vue'
+import FileUpload from '@/components/FileUpload.vue'
 import { userApi } from '@/services/userApi'
 import { ProjectApiService } from '@/services/projectApi'
+import { FileApiService } from '@/services/fileApi'
 import { roleApi } from '@/services/roleApi'
 import { permissionApi } from '@/services/permissionApi'
 import { useProjectManagement } from '@/composables/useProjectManagement'
 import type { User, UserCreate, UserUpdate, UserApproval } from '@/types/user'
 import { UserStatus, UserRole } from '@/types/user'
-import type { Project } from '@/types/data'
+import type { Project, ProjectUpdate, AttachmentInfo } from '@/types/data'
 import type { Role, RoleCreate, RoleUpdate } from '@/types/role'
 import type { Permission, PermissionCreate, PermissionUpdate } from '@/types/permission'
 
@@ -999,6 +1168,20 @@ const {
 const showCreateProjectDialog = ref(false)
 const editingProject = ref<Project | null>(null)
 const projectSaving = ref(false)
+
+// 项目表格分页状态
+const projectTotalRecords = ref(0)
+const projectPageSize = ref(10)
+const projectCurrentPage = ref(1)
+
+// 项目搜索条件
+const projectSearchQuery = reactive({
+  name: ''
+})
+
+// 附件上传对话框
+const showAttachmentUploadDialog = ref(false)
+const uploadingProject = ref<Project | null>(null)
 
 // 项目表单数据
 const projectForm = reactive({
@@ -1681,7 +1864,7 @@ const deleteProject = (project: Project) => {
           detail: '项目删除成功',
           life: 3000
         })
-        await refreshProjects()
+        await loadProjectsForManagement() // 使用新的项目加载方法
       } catch (error: any) {
         console.error('删除项目失败:', error)
         toast.add({
@@ -1748,7 +1931,7 @@ const handleSaveProject = async () => {
     showCreateProjectDialog.value = false
     editingProject.value = null
     resetProjectForm()
-    await refreshProjects()
+    await loadProjectsForManagement() // 使用新的项目加载方法
   } catch (error: any) {
     console.error('保存项目失败:', error)
     toast.add({
@@ -1759,6 +1942,177 @@ const handleSaveProject = async () => {
     })
   } finally {
     projectSaving.value = false
+  }
+}
+
+// 项目表格相关方法
+const onProjectPageChange = (event: any) => {
+  projectCurrentPage.value = event.page + 1
+  loadProjectsForManagement()
+}
+
+const handleProjectSearch = () => {
+  projectCurrentPage.value = 1
+  loadProjectsForManagement()
+}
+
+const handleProjectReset = () => {
+  projectSearchQuery.name = ''
+  projectCurrentPage.value = 1
+  loadProjectsForManagement()
+}
+
+// 为管理页面专门的项目加载方法
+const loadProjectsForManagement = async () => {
+  projectLoading.value = true
+  try {
+    // 获取所有项目（实际项目中这里应该支持分页参数）
+    const allProjects = await ProjectApiService.getAllProjects()
+    
+    // 客户端分页逻辑（生产环境中应该由后端处理）
+    const start = (projectCurrentPage.value - 1) * projectPageSize.value
+    const end = start + projectPageSize.value
+    const filteredProjects = allProjects.filter(project => {
+      if (projectSearchQuery.name) {
+        return project.name.toLowerCase().includes(projectSearchQuery.name.toLowerCase())
+      }
+      return true
+    })
+    
+    // 设置总记录数
+    projectTotalRecords.value = filteredProjects.length
+    
+    // 获取当前页的项目数据并加载附件
+    const currentPageProjects = filteredProjects.slice(start, end)
+    const projectsWithAttachments = await Promise.all(
+      currentPageProjects.map(async (project) => {
+        try {
+          const attachments = await ProjectApiService.getProjectAttachments(project.id)
+          return {
+            ...project,
+            attachments: attachments
+          }
+        } catch (error) {
+          console.error(`Failed to load attachments for project ${project.id}:`, error)
+          return project
+        }
+      })
+    )
+    
+    projects.value = projectsWithAttachments
+  } catch (error: any) {
+    console.error('加载项目失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '加载失败',
+      detail: error.message || '加载项目列表时发生错误',
+      life: 3000
+    })
+  } finally {
+    projectLoading.value = false
+  }
+}
+
+// 附件相关方法
+const showUploadDialog = (project: Project) => {
+  uploadingProject.value = project
+  showAttachmentUploadDialog.value = true
+}
+
+const getAttachmentName = (attachment: string) => {
+  if (!attachment) return ''
+  return attachment.split('/').pop() || attachment
+}
+
+const downloadAttachment = (project: Project) => {
+  if (!project.attachment) return
+  
+  // TODO: 实现下载逻辑
+  const link = document.createElement('a')
+  link.href = project.attachment
+  link.download = getAttachmentName(project.attachment)
+  link.click()
+}
+
+// 处理附件上传成功
+const handleAttachmentUpload = async (uploadResults: any[]) => {
+  if (!uploadingProject.value || !uploadResults.length) return
+  
+  try {
+    // 使用第一个上传的文件
+    const uploadResult = uploadResults[0]
+    
+    // 更新项目的附件信息
+    await updateProject(uploadingProject.value.id, {
+      attachment: uploadResult.download_url || uploadResult.file_name
+    })
+    
+    toast.add({
+      severity: 'success',
+      summary: '上传成功',
+      detail: '项目附件上传成功',
+      life: 3000
+    })
+    
+    // 刷新项目列表
+    await loadProjectsForManagement() // 使用新的项目加载方法
+    showAttachmentUploadDialog.value = false
+  } catch (error: any) {
+    console.error('更新项目附件失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '更新失败',
+      detail: error.message || '更新项目附件时发生错误',
+      life: 3000
+    })
+  }
+}
+
+// 处理附件上传失败
+const handleAttachmentError = (error: string) => {
+  console.error('附件上传失败:', error)
+  toast.add({
+    severity: 'error',
+    summary: '上传失败',
+    detail: error || '附件上传失败',
+    life: 3000
+  })
+}
+
+// 格式化文件大小
+const formatFileSize = (bytes: number): string => {
+  if (bytes === 0) return '0 B'
+  const k = 1024
+  const sizes = ['B', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
+// 根据附件ID下载文件
+const downloadAttachmentById = (attachmentId: string, fileName: string) => {
+  try {
+    const downloadUrl = FileApiService.getDownloadUrl(attachmentId)
+    const link = document.createElement('a')
+    link.href = downloadUrl
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    
+    toast.add({
+      severity: 'info',
+      summary: '下载开始',
+      detail: `正在下载文件: ${fileName}`,
+      life: 3000
+    })
+  } catch (error) {
+    console.error('下载文件失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '下载失败',
+      detail: `下载文件 ${fileName} 失败`,
+      life: 3000
+    })
   }
 }
 
@@ -2025,10 +2379,16 @@ const handleSavePermission = async () => {
   }
 }
 
+// 计算属性：分页起始索引
+const userFirstIndex = computed(() => (currentPage.value - 1) * pageSize.value)
+const projectFirstIndex = computed(() => (projectCurrentPage.value - 1) * projectPageSize.value)
+const roleFirstIndex = computed(() => (roleCurrentPage.value - 1) * rolePageSize.value)
+const permissionFirstIndex = computed(() => (permissionCurrentPage.value - 1) * permissionPageSize.value)
+
 // 组件挂载时加载数据
 onMounted(() => {
   loadUsers()
-  refreshProjects()
+  loadProjectsForManagement() // 使用新的项目加载方法
   loadRoles()
   loadPermissions()
   loadPermissionModules()
@@ -2299,6 +2659,68 @@ onMounted(() => {
   border-left: 3px solid #e67e22;
 }
 
+/* 项目管理相关样式 */
+.project-name {
+  font-weight: 500;
+  color: var(--p-primary-color);
+}
+
+.project-description {
+  color: #666;
+  max-width: 300px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attachment-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.attachment-name {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--p-primary-color);
+  font-size: 0.9rem;
+}
+
+.no-attachment {
+  color: #999;
+  font-style: italic;
+}
+
+/* 附件上传对话框样式 */
+.upload-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.project-info {
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 4px solid var(--p-primary-color);
+}
+
+.project-info h4 {
+  margin: 0 0 0.75rem 0;
+  color: var(--p-primary-color);
+}
+
+.project-info p {
+  margin: 0.5rem 0;
+  color: #333;
+}
+
+.upload-section h4 {
+  margin: 0 0 1rem 0;
+  color: #333;
+}
+
 .dialog-footer {
   display: flex;
   justify-content: center;
@@ -2325,5 +2747,46 @@ onMounted(() => {
   .search-actions {
     flex-direction: column;
   }
+}
+
+/* 附件相关样式 */
+.attachment-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.attachments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+}
+
+.attachment-name {
+  color: var(--p-primary-color);
+  cursor: pointer;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.attachment-name:hover {
+  color: var(--p-primary-600);
+}
+
+.attachment-size {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.no-attachment {
+  color: #999;
+  font-style: italic;
 }
 </style>

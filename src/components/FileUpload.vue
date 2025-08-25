@@ -198,7 +198,22 @@ const pendingFiles = computed(() =>
 )
 
 const acceptTypes = computed(() => {
-  return props.config.allowedTypes?.join(',') || '*'
+  if (!props.config.allowedTypes || props.config.allowedTypes.length === 0) {
+    return '*'
+  }
+  
+  // 将扩展名转换为文件选择器可识别的格式
+  const acceptList = props.config.allowedTypes.map(type => {
+    // 如果是 MIME 类型，直接使用
+    if (type.includes('/')) {
+      return type
+    } else {
+      // 如果是扩展名，添加点前缀
+      return `.${type}`
+    }
+  })
+  
+  return acceptList.join(',')
 })
 
 const allowedTypesDisplay = computed(() => {
@@ -207,16 +222,32 @@ const allowedTypesDisplay = computed(() => {
   }
   
   const extensions = props.config.allowedTypes.map(type => {
-    const extMap: Record<string, string> = {
-      'image/jpeg': 'JPG',
-      'image/png': 'PNG',
-      'image/gif': 'GIF',
-      'application/pdf': 'PDF',
-      'text/plain': 'TXT',
-      'text/csv': 'CSV',
-      'application/zip': 'ZIP'
+    // 如果是 MIME 类型，转换为扩展名
+    if (type.includes('/')) {
+      const extMap: Record<string, string> = {
+        'image/jpeg': 'JPG',
+        'image/png': 'PNG',
+        'image/gif': 'GIF',
+        'image/webp': 'WEBP',
+        'application/pdf': 'PDF',
+        'text/plain': 'TXT',
+        'text/csv': 'CSV',
+        'application/zip': 'ZIP',
+        'application/x-zip-compressed': 'ZIP',
+        'application/msword': 'DOC',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+        'application/vnd.ms-excel': 'XLS',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+        'application/vnd.ms-powerpoint': 'PPT',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+        'application/x-rar-compressed': 'RAR',
+        'application/vnd.rar': 'RAR'
+      }
+      return extMap[type] || type.split('/')[1]?.toUpperCase()
+    } else {
+      // 如果已经是扩展名，直接转换为大写
+      return type.toUpperCase()
     }
-    return extMap[type] || type.split('/')[1]?.toUpperCase()
   })
   
   return extensions.join(', ')

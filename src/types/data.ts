@@ -64,11 +64,21 @@ export interface ProjectData {
 }
 
 // 后端API项目类型
+// 附件信息接口
+export interface AttachmentInfo {
+  id: string;
+  file_name: string;
+  file_size: number;
+  file_type: string;
+  uploaded_at: string;
+}
+
 export interface Project {
   id: string;
   name: string;
   description?: string;
   attachment?: string;
+  attachments?: AttachmentInfo[];
 }
 
 // 创建项目请求类型

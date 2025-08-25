@@ -1,7 +1,7 @@
 // 项目管理相关的组合式函数
 
 import { ref, computed } from 'vue'
-import type { MainParameterOption, ProjectData, InputFormData, Project } from '@/types'
+import type { MainParameterOption, ProjectData, InputFormData, Project, ProjectUpdate } from '@/types'
 import { ProjectService, FormDataService } from '@/services/dataService'
 import { ProjectApiService } from '@/services/projectApi'
 
@@ -75,15 +75,32 @@ export function useProjectManagement() {
     loading.value = true
     try {
       const projectList = await ProjectApiService.getAllProjects()
-      projects.value = projectList
+      
+      // 为每个项目获取附件信息
+      const projectsWithAttachments = await Promise.all(
+        projectList.map(async (project) => {
+          try {
+            const attachments = await ProjectApiService.getProjectAttachments(project.id)
+            return {
+              ...project,
+              attachments: attachments
+            }
+          } catch (error) {
+            console.error(`Failed to load attachments for project ${project.id}:`, error)
+            return project
+          }
+        })
+      )
+      
+      projects.value = projectsWithAttachments
       
       // 如果当前没有选中项目且项目列表不为空，自动选中第一个项目
-      if (!selectedProject.value && projectList.length > 0) {
-        selectedProject.value = projectList[0]
-        console.log('Auto-selected first project:', projectList[0])
+      if (!selectedProject.value && projectsWithAttachments.length > 0) {
+        selectedProject.value = projectsWithAttachments[0]
+        console.log('Auto-selected first project:', projectsWithAttachments[0])
       }
       
-      console.log('Projects loaded:', projectList.length)
+      console.log('Projects loaded with attachments:', projectsWithAttachments.length)
     } catch (error) {
       console.error('Failed to load projects:', error)
       // 如果API失败，显示错误提示
@@ -117,7 +134,7 @@ export function useProjectManagement() {
   }
 
   // 更新项目
-  const updateProject = async (id: string, projectData: { name?: string; description?: string }): Promise<Project | null> => {
+  const updateProject = async (id: string, projectData: ProjectUpdate): Promise<Project | null> => {
     loading.value = true
     try {
       const updatedProject = await ProjectApiService.updateProject(id, projectData)

@@ -90,6 +90,22 @@ export class ProjectApiService {
     
     return allProjects
   }
+
+  // 获取项目的所有附件
+  static async getProjectAttachments(projectId: string): Promise<any[]> {
+    try {
+      const response = await apiClient.get<PaginatedResponse<any>>('/attachments', {
+        module_type: 'project',
+        module_id: projectId,
+        size: 100 // 获取所有附件
+      })
+      
+      return response.data.items || []
+    } catch (error) {
+      console.error('Failed to get project attachments:', error)
+      return []
+    }
+  }
 }
 
 // 创建兼容的导出，便于其他地方使用

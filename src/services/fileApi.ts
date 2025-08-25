@@ -94,7 +94,7 @@ export class FileApiService {
    */
   static async getAttachments(params: AttachmentFilter = {}): Promise<any> {
     try {
-      const response = await apiClient.get('/api/v1/attachments', params)
+      const response = await apiClient.get('/attachments', params)
       return response.data
     } catch (error) {
       console.error('Get attachments failed:', error)
@@ -107,7 +107,7 @@ export class FileApiService {
    */
   static async getAttachment(id: string): Promise<any> {
     try {
-      const response = await apiClient.get(`/api/v1/attachments/${id}`)
+      const response = await apiClient.get(`/attachments/${id}`)
       return response.data
     } catch (error) {
       console.error('Get attachment failed:', error)
@@ -121,8 +121,8 @@ export class FileApiService {
   static async deleteAttachment(id: string, permanent: boolean = false): Promise<void> {
     try {
       const endpoint = permanent 
-        ? `/api/v1/attachments/${id}?permanent=true`
-        : `/api/v1/attachments/${id}`
+        ? `/attachments/${id}?permanent=true`
+        : `/attachments/${id}`
       await apiClient.delete(endpoint)
     } catch (error) {
       console.error('Delete attachment failed:', error)
@@ -135,7 +135,7 @@ export class FileApiService {
    */
   static async restoreAttachment(id: string): Promise<void> {
     try {
-      await apiClient.post(`/api/v1/attachments/${id}/restore`)
+      await apiClient.post(`/attachments/${id}/restore`)
     } catch (error) {
       console.error('Restore attachment failed:', error)
       throw new Error(`恢复附件失败: ${error instanceof Error ? error.message : '未知错误'}`)
@@ -248,7 +248,47 @@ export class FileApiService {
    * 验证文件类型
    */
   static validateFileType(file: File, allowedTypes: string[]): boolean {
-    return allowedTypes.includes(file.type)
+    // 如果是 MIME 类型（包含 '/'），直接比较
+    if (allowedTypes.some(type => type.includes('/'))) {
+      return allowedTypes.includes(file.type)
+    }
+    
+    // 如果是文件扩展名，需要转换
+    const fileExtension = file.name.split('.').pop()?.toLowerCase()
+    if (!fileExtension) return false
+    
+    // 扩展名到 MIME 类型的映射
+    const extensionToMimeMap: Record<string, string[]> = {
+      'pdf': ['application/pdf'],
+      'doc': ['application/msword'],
+      'docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+      'xls': ['application/vnd.ms-excel'],
+      'xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+      'ppt': ['application/vnd.ms-powerpoint'],
+      'pptx': ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
+      'txt': ['text/plain'],
+      'zip': ['application/zip', 'application/x-zip-compressed'],
+      'rar': ['application/x-rar-compressed', 'application/vnd.rar'],
+      'jpg': ['image/jpeg'],
+      'jpeg': ['image/jpeg'],
+      'png': ['image/png'],
+      'gif': ['image/gif'],
+      'webp': ['image/webp'],
+      'csv': ['text/csv']
+    }
+    
+    // 检查扩展名是否在允许的类型中
+    if (allowedTypes.includes(fileExtension)) {
+      // 进一步验证 MIME 类型（可选，用于额外安全性）
+      const allowedMimes = extensionToMimeMap[fileExtension]
+      if (allowedMimes && file.type && !allowedMimes.includes(file.type)) {
+        console.warn(`File extension ${fileExtension} matches but MIME type ${file.type} doesn't match expected types:`, allowedMimes)
+        // 这里我们仍然允许，因为有些浏览器可能返回不同的 MIME 类型
+      }
+      return true
+    }
+    
+    return false
   }
 
   /**

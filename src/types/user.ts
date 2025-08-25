@@ -12,13 +12,19 @@ export enum UserRole {
   MANAGER = 'manager'
 }
 
+// 角色信息
+export interface RoleInfo {
+  id: string
+  name: string
+}
+
 export interface User {
   id: string
   name: string
   phone: string
   department: string
-  role: UserRole
-  role_id?: string  // 新增角色ID字段
+  role?: UserRole | RoleInfo  // 可以是枚举值或角色信息对象
+  role_id?: string  // 角色ID字段
   status: UserStatus
   create_time: string
   update_time: string
@@ -37,6 +43,7 @@ export interface UserCreate {
   department: string
   password: string
   role?: UserRole
+  role_id?: string
   status?: UserStatus
 }
 
@@ -45,6 +52,7 @@ export interface UserUpdate {
   phone?: string
   department?: string
   role?: UserRole
+  role_id?: string
 }
 
 export interface UserApproval {

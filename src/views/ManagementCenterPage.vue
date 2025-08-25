@@ -35,7 +35,7 @@
                 <Button
                   label="新增用户"
                   icon="pi pi-plus"
-                  @click="showCreateDialog = true; resetUserForm(); editingUser = null"
+                  @click="showCreateDialog = true; resetUserForm(); editingUser = null; loadAvailableRoles()"
                 />
               </div>
             </div>
@@ -139,8 +139,8 @@
                 <Column field="role" header="角色" sortable>
                   <template #body="{ data }">
                     <Tag
-                      :value="getRoleLabel(data.role)"
-                      :severity="getRoleSeverity(data.role)"
+                      :value="(typeof data.role === 'object' && data.role?.name) ? data.role.name : getRoleLabel(data.role) || '未分配'"
+                      :severity="(typeof data.role === 'object' && data.role?.name) ? 'info' : getRoleSeverity(data.role)"
                     />
                   </template>
                 </Column>
@@ -702,11 +702,12 @@
           <label for="userRole">角色</label>
           <Dropdown
             id="userRole"
-            v-model="userForm.role"
-            :options="roleOptions"
-            option-label="label"
-            option-value="value"
+            v-model="userForm.role_id"
+            :options="availableRoles"
+            option-label="name"
+            option-value="id"
             placeholder="请选择角色"
+            :loading="loadingAvailableRoles"
           />
         </div>
 
@@ -1288,13 +1289,18 @@ const selectedProjectsObjects = ref<Project[]>([])
 const allProjects = ref<Project[]>([])
 const loadingProjects = ref(false)
 
+// 动态角色选项
+const availableRoles = ref<Role[]>([])
+const loadingAvailableRoles = ref(false)
+
 // 表单数据
 const userForm = reactive<UserCreate>({
   name: '',
   phone: '',
   department: '',
   password: '',
-  role: UserRole.USER
+  role: UserRole.USER,
+  role_id: undefined
 })
 
 const approvalForm = reactive<UserApproval>({
@@ -1400,6 +1406,25 @@ const loadAllProjects = async () => {
     })
   } finally {
     loadingProjects.value = false
+  }
+}
+
+// 加载可用角色列表
+const loadAvailableRoles = async () => {
+  try {
+    loadingAvailableRoles.value = true
+    const response = await roleApi.getActiveRoles()
+    availableRoles.value = response
+  } catch (error) {
+    console.error('加载角色列表失败:', error)
+    toast.add({
+      severity: 'error',
+      summary: '错误',
+      detail: '加载角色列表失败',
+      life: 3000
+    })
+  } finally {
+    loadingAvailableRoles.value = false
   }
 }
 
@@ -1578,6 +1603,7 @@ const resetUserForm = () => {
   userForm.department = ''
   userForm.password = ''
   userForm.role = UserRole.USER
+  userForm.role_id = undefined
   
   // 重置项目选择
   selectedUserProjects.value = []
@@ -1638,7 +1664,8 @@ const handleSaveUser = async () => {
         name: userForm.name,
         phone: userForm.phone,
         department: userForm.department,
-        role: userForm.role
+        role: userForm.role,
+        role_id: userForm.role_id
       }
       await userApi.updateUser(editingUser.value.id, updateData)
       
@@ -1656,7 +1683,11 @@ const handleSaveUser = async () => {
       })
     } else {
       // 创建用户
-      await userApi.createUser(userForm)
+      const createData = {
+        ...userForm,
+        role_id: userForm.role_id
+      }
+      await userApi.createUser(createData)
       toast.add({
         severity: 'success',
         summary: '创建成功',
@@ -1687,10 +1718,16 @@ const editUser = async (user: User) => {
   userForm.name = user.name
   userForm.phone = user.phone
   userForm.department = user.department
-  userForm.role = user.role
+  // 处理角色信息 - 如果role是对象类型，则使用其id，否则使用role_id
+  if (typeof user.role === 'object' && user.role && 'id' in user.role) {
+    userForm.role_id = user.role.id
+  } else {
+    userForm.role_id = user.role_id
+  }
   userForm.password = '' // 编辑时不需要密码
   
-  // 加载项目数据
+  // 加载角色选项和项目数据
+  await loadAvailableRoles()
   await loadAllProjects()
   if (user.id) {
     await loadUserProjects(user.id)
